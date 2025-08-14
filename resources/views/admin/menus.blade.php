@@ -60,7 +60,7 @@
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {{ number_format($menu->price, 2) }}
+                                            Rp{{ number_format($menu->price, 2) }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <button data-modal-target="menuModal{{ $menu->id }}" data-modal-toggle="menuModal{{ $menu->id }}" class="text-indigo-600 hover:text-indigo-900 mr-3">
@@ -196,7 +196,7 @@
                     <div class="grid gap-4 mb-4 sm:grid-cols-2">
                         <div class="sm:col-span-2">
                             <label for="name" class="block mb-2 text-sm font-medium text-gray-900">Name</label>
-                            <input type="text" name="name" id="name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" required>
+                            <input type="text" name="name" id="name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" required autofocus>
                         </div>
                         <div class="sm:col-span-2">
                             <label for="category_id" class="block mb-2 text-sm font-medium text-gray-900">Category</label>
@@ -232,4 +232,20 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('menuModal');
+            const modalToggle = document.querySelector('[data-modal-toggle="menuModal"]');
+            
+            modalToggle.addEventListener('click', function() {
+                setTimeout(() => {
+                    const input = modal.querySelector('#name');
+                    if (input) {
+                        input.focus();
+                    }
+                }, 100);
+            });
+        });
+    </script>
 </x-app-layout>

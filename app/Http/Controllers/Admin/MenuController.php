@@ -49,8 +49,10 @@ class MenuController extends Controller
         return redirect()->route('admin.menus.index')->with('success', 'Menu created successfully!');
     }
 
-    public function update(Request $request, Menu $menu)
+    public function update(Request $request, $slug)
     {
+        $menu = Menu::where('slug', $slug)->firstOrFail();
+
         $validated = $request->validate([
             'name' => 'required|max:255|unique:menus,name,'.$menu->id,
             'category_id' => 'required|exists:categories,id',
@@ -77,9 +79,9 @@ class MenuController extends Controller
     }
 
     public function destroy($slug)
-{
-    $menu = Menu::where('slug', $slug)->firstOrFail();
-    $menu->delete();
-    return redirect()->route('admin.menus.index')->with('success', 'Menu deleted successfully!');
-}
+    {
+        $menu = Menu::where('slug', $slug)->firstOrFail();
+        $menu->delete();
+        return redirect()->route('admin.menus.index')->with('success', 'Menu deleted successfully!');
+    }
 }

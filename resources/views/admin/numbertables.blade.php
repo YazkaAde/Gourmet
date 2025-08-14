@@ -162,7 +162,7 @@
                     @csrf
                     <div class="mb-4">
                         <label for="table_number" class="block mb-2 text-sm font-medium text-gray-900">Table Number</label>
-                        <input type="text" name="table_number" id="table_number" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" required>
+                        <input type="text" name="table_number" id="table_number" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" required autofocus>
                     </div>
                     <div class="mb-4">
                         <label for="table_capacity" class="block mb-2 text-sm font-medium text-gray-900">Capacity</label>
@@ -180,4 +180,20 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('tableModal');
+            const modalToggle = document.querySelector('[data-modal-toggle="tableModal"]');
+            
+            modalToggle.addEventListener('click', function() {
+                setTimeout(() => {
+                    const input = modal.querySelector('#table_number');
+                    if (input) {
+                        input.focus();
+                    }
+                }, 100);
+            });
+        });
+    </script>
 </x-app-layout>
