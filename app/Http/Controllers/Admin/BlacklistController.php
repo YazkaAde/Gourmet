@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Blacklist;
 use Illuminate\Http\Request;
 
 class BlacklistController extends Controller
@@ -11,37 +12,42 @@ class BlacklistController extends Controller
     public function index()
     {
         $customers = User::where('role', 'customer')
-            ->latest()
+            ->with('blacklist')
             ->paginate(10);
 
-        return view('admin.blacklist', [ // Diubah dari 'admin.blacklist.index' ke 'admin.blacklist'
-            'customers' => $customers,
-            'title' => 'Customer Blacklist'
+        return view('admin.blacklist', [
+            'title' => 'Customer Blacklist',
+            'customers' => $customers
         ]);
     }
 
-    public function toggleBlacklist(User $user)
+    public function store(Request $request)
     {
-        if ($user->role !== 'customer') {
-            return back()->with('error', 'Only customers can be blacklisted!');
-        }
-
-        $user->update([
-            'is_blacklisted' => !$user->is_blacklisted,
-            'blacklisted_at' => $user->is_blacklisted ? null : now()
+        $validated = $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'reason' => 'nullable|string|max:255'
         ]);
 
-        $action = $user->is_blacklisted ? 'blacklisted' : 'removed from blacklist';
-        return back()->with('success', "Customer {$user->name} has been {$action}!");
-    }
+        $user = User::findOrFail($validated['user_id']);
 
-    public function destroy(User $user)
-    {
         if ($user->role !== 'customer') {
-            return back()->with('error', 'Only customers can be deleted!');
+            return back()->with('error', 'Only customer accounts can be blacklisted.');
         }
 
-        $user->delete();
-        return back()->with('success', 'Customer deleted successfully!');
+        Blacklist::create([
+            'user_id' => $user->id,
+            'reason' => $validated['reason'],
+            'banned_by' => auth()->id()
+        ]);
+
+        return redirect()->route('admin.blacklist.index')->with('success', 'Customer blacklisted successfully!');
+    }
+
+    public function destroy($id)
+    {
+        $blacklist = Blacklist::where('user_id', $id)->firstOrFail();
+        $blacklist->delete();
+
+        return redirect()->route('admin.blacklist.index')->with('success', 'Customer removed from blacklist successfully!');
     }
 }

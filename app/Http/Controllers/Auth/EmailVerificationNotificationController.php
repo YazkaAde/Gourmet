@@ -18,7 +18,7 @@ class EmailVerificationNotificationController extends Controller
             return match ($request->user()->role) {
                 'admin' => redirect()->intended(route('admin.dashboard', absolute: false)),
                 'cashier' => redirect()->intended(route('cashier.dashboard', absolute: false)),
-                'customer' => redirect()->intended(route('dashboard', absolute: false)),
+                'customer' => redirect()->intended(route('customer.menu.index', absolute: false)),
             };
         }
 

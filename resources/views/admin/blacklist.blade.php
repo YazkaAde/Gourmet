@@ -28,6 +28,7 @@
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
@@ -41,30 +42,71 @@
                                             <div class="text-sm text-gray-500">{{ $customer->email }}</div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $customer->is_blacklisted ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }}">
-                                                {{ $customer->is_blacklisted ? 'Blacklisted' : 'Active' }}
-                                            </span>
+                                            @if($customer->blacklist)
+                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                                    Blacklisted
+                                                </span>
+                                            @else
+                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                                    Active
+                                                </span>
+                                            @endif
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm text-gray-500">{{ $customer->blacklist->reason ?? '-' }}</div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <form action="{{ route('admin.blacklist.toggle', $customer->id) }}" method="POST" class="inline">
-                                                @csrf
-                                                @method('PATCH')
-                                                <button type="submit" class="text-{{ $customer->is_blacklisted ? 'green' : 'red' }}-600 hover:text-{{ $customer->is_blacklisted ? 'green' : 'red' }}-900">
-                                                    {{ $customer->is_blacklisted ? 'Remove from Blacklist' : 'Blacklist' }}
+                                            @if($customer->blacklist)
+                                                <form action="{{ route('admin.blacklist.destroy', $customer->id) }}" method="POST" class="inline">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="text-green-600 hover:text-green-900">
+                                                        Remove
+                                                    </button>
+                                                </form>
+                                            @else
+                                                <button data-modal-target="blacklistModal{{ $customer->id }}" data-modal-toggle="blacklistModal{{ $customer->id }}" class="text-red-600 hover:text-red-900">
+                                                    Blacklist
                                                 </button>
-                                            </form>
-                                            <form action="{{ route('admin.blacklist.destroy', $customer->id) }}" method="POST" class="inline ml-3">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="text-red-600 hover:text-red-900" onclick="return confirm('Are you sure you want to delete this customer?')">
-                                                    Delete
-                                                </button>
-                                            </form>
+                                            @endif
                                         </td>
                                     </tr>
+
+                                    <!-- Blacklist Modal -->
+                                    <div id="blacklistModal{{ $customer->id }}" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-modal md:h-full">
+                                        <div class="relative p-4 w-full max-w-md h-full md:h-auto">
+                                            <div class="relative p-4 bg-white rounded-lg shadow sm:p-5">
+                                                <div class="flex justify-between items-center pb-4 mb-4 rounded-t border-b sm:mb-5">
+                                                    <h3 class="text-lg font-semibold text-gray-900">
+                                                        Blacklist Customer
+                                                    </h3>
+                                                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center" data-modal-toggle="blacklistModal{{ $customer->id }}">
+                                                        <svg aria-hidden="true" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+                                                        <span class="sr-only">Close modal</span>
+                                                    </button>
+                                                </div>
+                                                <form action="{{ route('admin.blacklist.store') }}" method="POST">
+                                                    @csrf
+                                                    <input type="hidden" name="user_id" value="{{ $customer->id }}">
+                                                    <div class="mb-4">
+                                                        <label for="reason" class="block mb-2 text-sm font-medium text-gray-900">Reason (Optional)</label>
+                                                        <textarea name="reason" id="reason" rows="3" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"></textarea>
+                                                    </div>
+                                                    <div class="flex items-center space-x-4">
+                                                        <button type="submit" class="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center">
+                                                            Confirm Blacklist
+                                                        </button>
+                                                        <button type="button" data-modal-toggle="blacklistModal{{ $customer->id }}" class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10">
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">No customers found</td>
+                                        <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">No customers found</td>
                                     </tr>
                                 @endforelse
                             </tbody>

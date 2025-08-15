@@ -20,8 +20,8 @@ class Menu extends Model
         'order_count'
     ];
 
-    public function category(): BelongsTo
-    {
-        return $this->belongsTo(Category::class);
-    }
+    public function category()
+{
+    return $this->belongsTo(Category::class);
+}
 }

@@ -62,4 +62,14 @@ public function isCustomer(): bool
 {
     return $this->role === 'customer';
 }
+
+public function blacklist()
+{
+    return $this->hasOne(Blacklist::class);
+}
+
+public function carts()
+{
+    return $this->hasMany(Cart::class);
+}
 }

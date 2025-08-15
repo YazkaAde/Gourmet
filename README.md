@@ -29,6 +29,7 @@ Sebuah aplikasi yang dapat digunakan untuk pemesanan makanan dan minuman pada se
 - Menerima pesanan
 - Konfirmasi terima pesanan
 - Mengubah status pesanan "siap saji"
+- Melihat/mengubah status pembayaran
 - Konfirmasi reservasi
 
 # Customer/Pembeli
@@ -42,3 +43,6 @@ Sebuah aplikasi yang dapat digunakan untuk pemesanan makanan dan minuman pada se
 - Membuat/update/hapus Reservasi
 - Melihat rating masing-masing menu
 - Memberikan rating kepada menu
+
+# Category diatas menu management
+# Status order ...->diproses->siap saji

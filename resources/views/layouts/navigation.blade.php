@@ -18,7 +18,7 @@
                             <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
                         </a>
                     @elseif($role === 'customer')
-                        <a href="{{ route('dashboard') }}">
+                        <a href="{{ route('customer.menu.index') }}">
                             <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
                         </a>
                     @endif
@@ -30,6 +30,9 @@
                         <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
                             {{ __('Dashboard') }}
                         </x-nav-link>
+                        <x-nav-link :href="route('admin.menus.index')" :active="request()->routeIs('admin.menus.*')">
+                            {{ __('Menus') }}
+                        </x-nav-link>
                     </div>
                 @elseif($role === 'cashier')
                     <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
@@ -39,8 +42,11 @@
                     </div>
                 @elseif($role === 'customer')
                     <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                        <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                            {{ __('Dashboard') }}
+                        <x-nav-link :href="route('customer.menu.index')" :active="request()->routeIs('customer.menu.*')">
+                            {{ __('Menu') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('customer.cart.index')" :active="request()->routeIs('customer.cart.*')">
+                            {{ __('Cart') }}
                         </x-nav-link>
                     </div>
                 @endif
@@ -99,13 +105,19 @@
                 <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
                     {{ __('Dashboard Admin') }}
                 </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.menus.index')" :active="request()->routeIs('admin.menus.*')">
+                    {{ __('Menus') }}
+                </x-responsive-nav-link>
             @elseif($role === 'cashier')
                 <x-responsive-nav-link :href="route('cashier.dashboard')" :active="request()->routeIs('cashier.dashboard')">
                     {{ __('Dashboard Cashier') }}
                 </x-responsive-nav-link>
             @elseif($role === 'customer')
-                <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                    {{ __('Dashboard') }}
+                <x-responsive-nav-link :href="route('customer.menu.index')" :active="request()->routeIs('customer.menu.*')">
+                    {{ __('Menu') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('customer.cart.index')" :active="request()->routeIs('customer.cart.*')">
+                    {{ __('Cart') }}
                 </x-responsive-nav-link>
             @endif
         </div>
