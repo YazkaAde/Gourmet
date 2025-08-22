@@ -19,7 +19,7 @@ Sebuah aplikasi yang dapat digunakan untuk pemesanan makanan dan minuman pada se
 - Menambah/mengubah/menghapus meja restoran (v)
 - Menambah/mengubah/menghapus user cashier (v)
 - Menambah/mengubah/menghapus flyer promo
-- Mengubah/menghapus user customer
+- Memblacklist/unblacklist user customer
 - Melihat rating masing-masing menu
 
 # Cashier/Kasir

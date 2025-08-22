@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Order extends Model
 {
@@ -38,5 +39,11 @@ class Order extends Model
     public function table(): BelongsTo
     {
         return $this->belongsTo(NumberTable::class, 'table_number', 'table_number');
+    }
+
+    // Relasi ke carts (item-item dalam order)
+    public function carts(): HasMany
+    {
+        return $this->hasMany(Cart::class);
     }
 }

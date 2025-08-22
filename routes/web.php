@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\CrewController;
 use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Customer\CartController;
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Customer\OrderController;
 use App\Http\Controllers\Admin\BlacklistController;
 use App\Http\Controllers\Admin\NumberTableController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -63,7 +64,7 @@ Route::middleware(['auth', 'role:cashier', CheckBlacklist::class])->prefix('cash
     })->name('dashboard');
 });
 
-// Customer Routes
+/// Customer Routes
 Route::middleware(['auth', 'role:customer', CheckBlacklist::class])->group(function() {
     // Menu Routes
     Route::prefix('menu')->name('customer.menu.')->group(function() {
@@ -74,7 +75,15 @@ Route::middleware(['auth', 'role:customer', CheckBlacklist::class])->group(funct
     Route::prefix('cart')->name('customer.cart.')->group(function() {
         Route::get('/', [CartController::class, 'index'])->name('index');
         Route::post('/', [CartController::class, 'store'])->name('store');
+        Route::patch('/{id}', [CartController::class, 'update'])->name('update');
         Route::delete('/{id}', [CartController::class, 'destroy'])->name('destroy');
+        Route::post('/checkout', [CartController::class, 'checkout'])->name('checkout');
+    });
+
+    // Order Routes (jika menggunakan OrderController terpisah)
+    Route::prefix('orders')->name('customer.orders.')->group(function() {
+        Route::get('/', [OrderController::class, 'index'])->name('index');
+        Route::get('/{order}', [OrderController::class, 'show'])->name('show');
     });
 });
 
