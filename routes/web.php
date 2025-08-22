@@ -65,6 +65,7 @@ Route::middleware(['auth', 'role:cashier', CheckBlacklist::class])->prefix('cash
 });
 
 /// Customer Routes
+// Customer Routes
 Route::middleware(['auth', 'role:customer', CheckBlacklist::class])->group(function() {
     // Menu Routes
     Route::prefix('menu')->name('customer.menu.')->group(function() {
@@ -80,10 +81,11 @@ Route::middleware(['auth', 'role:customer', CheckBlacklist::class])->group(funct
         Route::post('/checkout', [CartController::class, 'checkout'])->name('checkout');
     });
 
-    // Order Routes (jika menggunakan OrderController terpisah)
+    // Order Routes
     Route::prefix('orders')->name('customer.orders.')->group(function() {
         Route::get('/', [OrderController::class, 'index'])->name('index');
         Route::get('/{order}', [OrderController::class, 'show'])->name('show');
+        Route::delete('/{order}/cancel', [OrderController::class, 'cancel'])->name('cancel');
     });
 });
 

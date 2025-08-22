@@ -13,48 +13,68 @@ use Illuminate\Support\Facades\Auth;
 class CartController extends Controller
 {
     public function index()
-    {
-        // Hanya ambil cart items yang belum memiliki order
-        $carts = auth()->user()->carts()
-            ->whereNull('order_id')
-            ->with('menu')
-            ->get();
-            
-        return view('customer.cart', compact('carts'));
+{
+    $carts = auth()->user()->carts()
+        ->whereNull('order_id')
+        ->with('menu')
+        ->get();
+    
+    if (request()->wantsJson()) {
+        $cartHtml = view('partials.cart-items', compact('carts'))->render();
+        
+        return response()->json([
+            'cart_html' => $cartHtml
+        ]);
     }
+    
+    $menus = Menu::all();
+    return view('customer.cart', compact('carts', 'menus'));
+}
 
     public function store(Request $request)
-{
-    $request->validate([
-        'menu_id' => 'required|exists:menus,id',
-        'quantity' => 'required|integer|min:1'
-    ]);
-
-    $menu = Menu::findOrFail($request->menu_id);
-    $totalPrice = $menu->price * $request->quantity;
-
-    $cart = auth()->user()->carts()
-        ->where('menu_id', $request->menu_id)
-        ->whereNull('order_id')
-        ->first();
-
-    if ($cart) {
-        $cart->update([
-            'quantity' => $cart->quantity + $request->quantity,
-            'price' => $cart->price + $totalPrice
+    {
+        $request->validate([
+            'menu_id' => 'required|exists:menus,id',
+            'quantity' => 'required|integer|min:1'
         ]);
-    } else {
-        Cart::create([
-            'user_id' => auth()->id(),
-            'menu_id' => $request->menu_id,
-            'quantity' => $request->quantity,
-            'price' => $totalPrice,
-            'order_id' => null
+
+        $menu = Menu::findOrFail($request->menu_id);
+        $totalPrice = $menu->price * $request->quantity;
+
+        $cart = auth()->user()->carts()
+            ->where('menu_id', $request->menu_id)
+            ->whereNull('order_id')
+            ->first();
+            
+
+        if ($cart) {
+            $cart->update([
+                'quantity' => $cart->quantity + $request->quantity,
+                'price' => $cart->price + $totalPrice
+            ]);
+        } else {
+            Cart::create([
+                'user_id' => auth()->id(),
+                'menu_id' => $request->menu_id,
+                'quantity' => $request->quantity,
+                'price' => $totalPrice,
+                'order_id' => null
+            ]);
+        }
+        
+        $totalQuantity = auth()->user()->carts()
+        ->whereNull('order_id')
+        ->sum('quantity');
+    
+    if ($request->wantsJson()) {
+        return response()->json([
+            'success' => true,
+            'message' => 'Item added to cart',
+            'total_quantity' => $totalQuantity
         ]);
     }
-
-    return redirect()->back()->with('success', 'Item added to cart!');
-}
+    
+    return redirect()->back()->with('success', 'Item added to cart!');    }
 
     public function update(Request $request, $id)
 {
@@ -76,10 +96,10 @@ class CartController extends Controller
 
     return response()->json([
         'success' => true,
-        'message' => 'Cart updated successfully'
+        'message' => 'Cart updated successfully',
+        'new_total' => $newPrice
     ]);
 }
-
 
     public function destroy($id)
     {
@@ -92,7 +112,7 @@ class CartController extends Controller
         return back()->with('success', 'Item removed from cart');
     }
 
-    // Tambahkan method checkout
+    // Method checkout
     public function checkout(Request $request)
     {
         $user = Auth::user();
@@ -119,7 +139,7 @@ class CartController extends Controller
             // Buat order baru
             $order = Order::create([
                 'user_id' => $user->id,
-                'table_number' => $request->table_number ?? '1', // Default value
+                'table_number' => $request->table_number ?? '1',
                 'total_price' => $totalPrice,
                 'status' => 'pending',
             ]);

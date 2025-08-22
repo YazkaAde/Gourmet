@@ -46,4 +46,16 @@ class Order extends Model
     {
         return $this->hasMany(Cart::class);
     }
+
+    // Scope untuk order yang aktif
+    public function scopeActive($query)
+    {
+        return $query->whereIn('status', ['pending', 'processing']);
+    }
+
+    // Scope untuk order yang selesai
+    public function scopeCompleted($query)
+    {
+        return $query->where('status', 'completed');
+    }
 }

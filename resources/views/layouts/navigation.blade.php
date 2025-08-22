@@ -45,8 +45,8 @@
                         <x-nav-link :href="route('customer.menu.index')" :active="request()->routeIs('customer.menu.*')">
                             {{ __('Menu') }}
                         </x-nav-link>
-                        <x-nav-link :href="route('customer.cart.index')" :active="request()->routeIs('customer.cart.*')">
-                            {{ __('Cart') }}
+                        <x-nav-link :href="route('customer.orders.index')" :active="request()->routeIs('customer.orders.*')">
+                            {{ __('Orders') }}
                         </x-nav-link>
                     </div>
                 @endif
@@ -112,12 +112,12 @@
                 <x-responsive-nav-link :href="route('cashier.dashboard')" :active="request()->routeIs('cashier.dashboard')">
                     {{ __('Dashboard Cashier') }}
                 </x-responsive-nav-link>
-            @elseif($role === 'customer')
+                @elseif($role === 'customer')
                 <x-responsive-nav-link :href="route('customer.menu.index')" :active="request()->routeIs('customer.menu.*')">
                     {{ __('Menu') }}
                 </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('customer.cart.index')" :active="request()->routeIs('customer.cart.*')">
-                    {{ __('Cart') }}
+                <x-responsive-nav-link :href="route('customer.orders.index')" :active="request()->routeIs('customer.orders.*')">
+                    {{ __('Orders') }}
                 </x-responsive-nav-link>
             @endif
         </div>

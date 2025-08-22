@@ -3,58 +3,21 @@
 namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
-use App\Models\Cart;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
-    public function checkout(Request $request)
-    {
-        $user = Auth::user();
-        
-        return DB::transaction(function () use ($user, $request) {
-            // Hitung total harga dari semua item di cart
-            $totalPrice = Cart::where('user_id', $user->id)
-                ->whereNull('order_id')
-                ->with('menu')
-                ->get()
-                ->sum(function ($cart) {
-                    return $cart->menu->price * $cart->quantity;
-                });
-            
-            // Buat order baru
-            $order = Order::create([
-                'user_id' => $user->id,
-                'table_number' => $request->table_number, // atau dari reservation
-                'total_price' => $totalPrice,
-                'status' => 'pending',
-            ]);
-            
-            // Hubungkan cart items dengan order
-            Cart::where('user_id', $user->id)
-                ->whereNull('order_id')
-                ->update(['order_id' => $order->id]);
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Order created successfully',
-                'order_id' => $order->id
-            ]);
-        });
-    }
-    
     public function index()
     {
         $user = Auth::user();
         $orders = Order::with(['carts.menu'])
             ->where('user_id', $user->id)
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->paginate(10); // Menambahkan pagination
             
-        return view('customer.orders.index', compact('orders'));
+        return view('customer.orders', compact('orders')); // Mengubah ke customer.orders
     }
     
     public function show(Order $order)
@@ -66,6 +29,23 @@ class OrderController extends Controller
         
         $order->load(['carts.menu', 'reservation', 'table']);
         
-        return view('customer.orders.show', compact('order'));
+        return view('customer.order-show', compact('order')); // Akan membuat file terpisah nanti
+    }
+
+    // Method untuk membatalkan order
+    public function cancel(Order $order)
+    {
+        if ($order->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        // Hanya bisa membatalkan order yang masih pending
+        if ($order->status !== 'pending') {
+            return redirect()->back()->with('error', 'Cannot cancel order that is already being processed.');
+        }
+
+        $order->update(['status' => 'cancelled']);
+
+        return redirect()->route('customer.orders.index')->with('success', 'Order cancelled successfully.');
     }
 }

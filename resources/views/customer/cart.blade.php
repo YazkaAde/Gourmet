@@ -1,4 +1,4 @@
-<x-app-layout>
+<x-app-layout x-data="{ openCart: true }">
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
             {{ __('Your Cart') }}
@@ -179,6 +179,8 @@
                     .then(data => {
                         if (data.success) {
                             console.log('Quantity updated successfully');
+                            // Refresh halaman untuk update data terbaru
+                            window.location.reload();
                         }
                     })
                     .catch(error => {
@@ -190,45 +192,93 @@
             // Handle checkout button
             const checkoutBtn = document.querySelector('.checkout-btn');
             if (checkoutBtn) {
-                checkoutBtn.addEventListener('click', function() {
-                    // Tampilkan modal atau prompt untuk memilih meja
-                    const tableNumber = prompt('Please enter your table number:', '1');
-                    
-                    if (tableNumber !== null) {
-                        if (tableNumber.trim() === '') {
-                            alert('Table number cannot be empty');
+                checkoutBtn.addEventListener('click', async function() {
+                    try {
+                        // Ambil daftar meja dari server
+                        const response = await fetch('/api/available-tables');
+                        const tables = await response.json();
+                        
+                        if (tables.length === 0) {
+                            alert('No tables available at the moment.');
                             return;
                         }
                         
-                        // Tampilkan loading state
-                        checkoutBtn.disabled = true;
-                        checkoutBtn.innerHTML = `
-                            <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Processing...
+                        // Buat form untuk memilih meja
+                        let tableOptions = '';
+                        tables.forEach(table => {
+                            tableOptions += `<option value="${table.table_number}">Table ${table.table_number} (Capacity: ${table.table_capacity})</option>`;
+                        });
+                        
+                        const tableForm = `
+                            <div class="p-4">
+                                <h3 class="text-lg font-medium mb-3">Select Table</h3>
+                                <select id="table-select" class="w-full p-2 border border-gray-300 rounded mb-3">
+                                    ${tableOptions}
+                                </select>
+                                <div class="flex justify-end gap-2">
+                                    <button type="button" id="cancel-table" class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
+                                    <button type="button" id="confirm-table" class="px-4 py-2 bg-primary-600 text-white rounded">Confirm</button>
+                                </div>
+                            </div>
                         `;
                         
-                        // Kirim request checkout
-                        fetch('{{ route("customer.cart.checkout") }}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'X-Requested-With': 'XMLHttpRequest'
-                            },
-                            body: JSON.stringify({
-                                table_number: tableNumber
+                        // Tampilkan modal
+                        const modal = document.createElement('div');
+                        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+                        modal.innerHTML = `
+                            <div class="bg-white rounded-lg w-96">
+                                ${tableForm}
+                            </div>
+                        `;
+                        
+                        document.body.appendChild(modal);
+                        
+                        // Handle confirm button
+                        document.getElementById('confirm-table').addEventListener('click', function() {
+                            const selectedTable = document.getElementById('table-select').value;
+                            modal.remove();
+                            
+                            // Tampilkan loading state
+                            checkoutBtn.disabled = true;
+                            checkoutBtn.innerHTML = `
+                                <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Processing...
+                            `;
+                            
+                            // Kirim request checkout
+                            fetch('{{ route("customer.cart.checkout") }}', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                },
+                                body: JSON.stringify({
+                                    table_number: selectedTable
+                                })
                             })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                alert('Order created successfully! Your order ID: ' + data.order_id);
-                                window.location.reload();
-                            } else {
-                                alert('Error: ' + data.message);
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    alert('Order created successfully! Your order ID: ' + data.order_id);
+                                    window.location.reload();
+                                } else {
+                                    alert('Error: ' + data.message);
+                                    checkoutBtn.disabled = false;
+                                    checkoutBtn.innerHTML = `
+                                        <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7 7V5"/>
+                                        </svg>
+                                        Checkout
+                                    `;
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                                alert('An error occurred during checkout');
                                 checkoutBtn.disabled = false;
                                 checkoutBtn.innerHTML = `
                                     <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
@@ -236,19 +286,17 @@
                                     </svg>
                                     Checkout
                                 `;
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            alert('An error occurred during checkout');
-                            checkoutBtn.disabled = false;
-                            checkoutBtn.innerHTML = `
-                                <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7 7V5"/>
-                                </svg>
-                                Checkout
-                            `;
+                            });
                         });
+                        
+                        // Handle cancel button
+                        document.getElementById('cancel-table').addEventListener('click', function() {
+                            modal.remove();
+                        });
+                        
+                    } catch (error) {
+                        console.error('Error fetching tables:', error);
+                        alert('Error loading table information');
                     }
                 });
             }

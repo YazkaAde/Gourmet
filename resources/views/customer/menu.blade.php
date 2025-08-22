@@ -168,7 +168,5 @@
                 }, 3000);
             }
         });
-        </script>
-        
-
+    </script>
 </x-app-layout>

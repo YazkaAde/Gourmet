@@ -27,7 +27,8 @@ class Cart extends Model
         return $this->belongsTo(Order::class);
     }
 
-    public function getPriceAttribute()
+    // Accessor untuk menghitung harga
+    public function getTotalPriceAttribute()
     {
         return $this->menu->price * $this->quantity;
     }
