@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\NumberTable;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\CheckBlacklist;
 use App\Http\Controllers\ProfileController;
@@ -8,7 +9,9 @@ use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Customer\CartController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Customer\OrderController;
+use App\Http\Controllers\Customer\TableController;
 use App\Http\Controllers\Admin\BlacklistController;
+use App\Http\Controllers\Cashier\PaymentController;
 use App\Http\Controllers\Admin\NumberTableController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 
@@ -62,9 +65,23 @@ Route::middleware(['auth', 'role:cashier', CheckBlacklist::class])->prefix('cash
     Route::get('/dashboard', function () {
         return view('cashier.dashboard');
     })->name('dashboard');
+
+    // Orders Routes untuk Cashier
+    Route::prefix('orders')->name('orders.')->group(function() {
+        Route::get('/', [\App\Http\Controllers\Cashier\OrderController::class, 'index'])->name('index');
+        Route::get('/{order}', [\App\Http\Controllers\Cashier\OrderController::class, 'show'])->name('show');
+        Route::patch('/{order}/status', [\App\Http\Controllers\Cashier\OrderController::class, 'updateStatus'])->name('update-status');
+    });
+
+    Route::prefix('payments')->name('payments.')->group(function() {
+        Route::get('/', [PaymentController::class, 'index'])->name('index');
+        Route::get('/{payment}', [PaymentController::class, 'show'])->name('show');
+        Route::post('/{payment}/confirm', [PaymentController::class, 'confirm'])->name('confirm');
+        Route::post('/{payment}/process-cash', [PaymentController::class, 'processCashPayment'])->name('process-cash');
+        Route::get('/{payment}/receipt', [PaymentController::class, 'printReceipt'])->name('receipt');
+    });
 });
 
-/// Customer Routes
 // Customer Routes
 Route::middleware(['auth', 'role:customer', CheckBlacklist::class])->group(function() {
     // Menu Routes
@@ -86,7 +103,19 @@ Route::middleware(['auth', 'role:customer', CheckBlacklist::class])->group(funct
         Route::get('/', [OrderController::class, 'index'])->name('index');
         Route::get('/{order}', [OrderController::class, 'show'])->name('show');
         Route::delete('/{order}/cancel', [OrderController::class, 'cancel'])->name('cancel');
+        Route::get('/{order}/payment', [\App\Http\Controllers\Customer\PaymentController::class, 'create'])->name('payment.create');
+        Route::post('/{order}/payment', [\App\Http\Controllers\Customer\PaymentController::class, 'store'])->name('payment.store');
     });
+
+    Route::get('/available-tables', [TableController::class, 'availableTables'])->name('api.available-tables');
+
+    Route::get('/api/available-tables', function() {
+        $tables = NumberTable::whereDoesntHave('orders', function($query) {
+            $query->whereIn('status', ['pending', 'processing']);
+        })->get();
+        
+        return response()->json($tables);
+    })->name('api.available-tables');
 });
 
 require __DIR__.'/auth.php';

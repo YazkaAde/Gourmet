@@ -195,7 +195,7 @@
                 checkoutBtn.addEventListener('click', async function() {
                     try {
                         // Ambil daftar meja dari server
-                        const response = await fetch('/api/available-tables');
+                        const response = await fetch('{{ route("api.available-tables") }}');
                         const tables = await response.json();
                         
                         if (tables.length === 0) {

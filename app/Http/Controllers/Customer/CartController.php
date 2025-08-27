@@ -114,46 +114,58 @@ class CartController extends Controller
 
     // Method checkout
     public function checkout(Request $request)
-    {
-        $user = Auth::user();
+{
+    $request->validate([
+        'table_number' => 'required|exists:number_tables,table_number'
+    ]);
+
+    $user = Auth::user();
+    
+    return DB::transaction(function () use ($user, $request) {
+        $cartItems = Cart::where('user_id', $user->id)
+            ->whereNull('order_id')
+            ->with('menu')
+            ->get();
         
-        return DB::transaction(function () use ($user, $request) {
-            // Ambil hanya cart items yang belum memiliki order
-            $cartItems = Cart::where('user_id', $user->id)
-                ->whereNull('order_id')
-                ->with('menu')
-                ->get();
-            
-            if ($cartItems->isEmpty()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cart is empty'
-                ], 400);
-            }
-            
-            // Hitung total harga
-            $totalPrice = $cartItems->sum(function ($cart) {
-                return $cart->menu->price * $cart->quantity;
-            });
-            
-            // Buat order baru
-            $order = Order::create([
-                'user_id' => $user->id,
-                'table_number' => $request->table_number ?? '1',
-                'total_price' => $totalPrice,
-                'status' => 'pending',
-            ]);
-            
-            // Hubungkan cart items dengan order
-            Cart::where('user_id', $user->id)
-                ->whereNull('order_id')
-                ->update(['order_id' => $order->id]);
-            
+        if ($cartItems->isEmpty()) {
             return response()->json([
-                'success' => true,
-                'message' => 'Order created successfully',
-                'order_id' => $order->id
-            ]);
+                'success' => false,
+                'message' => 'Cart is empty'
+            ], 400);
+        }
+        
+        // Periksa apakah meja sedang digunakan
+        $tableInUse = Order::where('table_number', $request->table_number)
+            ->whereIn('status', ['pending', 'processing'])
+            ->exists();
+            
+        if ($tableInUse) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Table is currently occupied'
+            ], 400);
+        }
+        
+        $totalPrice = $cartItems->sum(function ($cart) {
+            return $cart->menu->price * $cart->quantity;
         });
-    }
+        
+        $order = Order::create([
+            'user_id' => $user->id,
+            'table_number' => $request->table_number,
+            'total_price' => $totalPrice,
+            'status' => 'pending',
+        ]);
+        
+        Cart::where('user_id', $user->id)
+            ->whereNull('order_id')
+            ->update(['order_id' => $order->id]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Order created successfully',
+            'order_id' => $order->id
+        ]);
+    });
+}
 }

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Order extends Model
 {
@@ -23,39 +24,52 @@ class Order extends Model
         'total_price' => 'decimal:2',
     ];
 
-    // Relasi ke user
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    // Relasi ke reservation
     public function reservation(): BelongsTo
     {
         return $this->belongsTo(Reservation::class);
     }
 
-    // Relasi ke number table
     public function table(): BelongsTo
     {
         return $this->belongsTo(NumberTable::class, 'table_number', 'table_number');
     }
 
-    // Relasi ke carts (item-item dalam order)
     public function carts(): HasMany
     {
         return $this->hasMany(Cart::class);
     }
 
-    // Scope untuk order yang aktif
+    public function payment(): HasOne
+    {
+        return $this->hasOne(Payment::class);
+    }
+
     public function scopeActive($query)
     {
         return $query->whereIn('status', ['pending', 'processing']);
     }
 
-    // Scope untuk order yang selesai
     public function scopeCompleted($query)
     {
         return $query->where('status', 'completed');
+    }
+
+    public function scopeHasPayment($query)
+    {
+        return $query->whereHas('payment');
+    }
+
+    public function scopeNeedsPayment($query)
+    {
+        return $query->where('status', 'completed')
+                    ->whereDoesntHave('payment')
+                    ->orWhereHas('payment', function($q) {
+                        $q->where('status', 'pending');
+                    });
     }
 }

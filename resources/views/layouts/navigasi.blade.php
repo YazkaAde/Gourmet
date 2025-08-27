@@ -102,6 +102,27 @@
                         <span class="ml-3">Dashboard</span>
                     </a>
                 </li>
+                
+                <!-- Cashier Orders -->
+                <li>
+                    <a href="{{ route('cashier.orders.index') }}" class="flex items-center p-2 text-base font-normal text-gray-900 rounded-lg hover:bg-gray-100 group {{ request()->routeIs('cashier.orders.*') ? 'bg-gray-100' : '' }}">
+                        <svg class="w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="ml-3">Order Management</span>
+                    </a>
+                </li>
+
+                <!-- Cashier Payments -->
+                <li>
+                    <a href="{{ route('cashier.payments.index') }}" class="flex items-center p-2 text-base font-normal text-gray-900 rounded-lg hover:bg-gray-100 group {{ request()->routeIs('cashier.payments.*') ? 'bg-gray-100' : '' }}">
+                        <svg class="w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="ml-3">Payment Management</span>
+                    </a>
+                </li>
+                
             @endif
         </ul>
 

@@ -26,6 +26,7 @@ class NumberTable extends Model
     if (Schema::hasColumn('orders', 'table_number')) {
         return $this->hasMany(Order::class, 'table_number', 'table_number');
     }
-    return $this->hasMany(Order::class)->whereRaw('1=0'); // Return empty relation jika kolom tidak ada
+    return $this->hasMany(Order::class)->whereRaw('1=0');
 }
+
 }

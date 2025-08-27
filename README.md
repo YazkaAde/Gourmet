@@ -23,26 +23,41 @@ Sebuah aplikasi yang dapat digunakan untuk pemesanan makanan dan minuman pada se
 - Melihat rating masing-masing menu
 
 # Cashier/Kasir
-- Melihat harga dan total harga pesanan
+- Melihat harga dan total harga pesanan (v)
 - Konfirmasi pembayaran
 - Membuat bukti pembayaran
-- Menerima pesanan
-- Konfirmasi terima pesanan
-- Mengubah status pesanan "siap saji"
+- Menerima pesanan (v)
+- Konfirmasi terima pesanan (v)
+- Mengubah status pesanan "siap saji" (v)
 - Melihat/mengubah status pembayaran
 - Konfirmasi reservasi
 
 # Customer/Pembeli
-- Melihat jumlah menu dan jumlah menu dari masing-masing kategori
+- Melihat jumlah menu dan jumlah menu dari masing-masing kategori (v)
 - Melihat flyer promo restoran
 - Melihat menu, harga dan rating
-- Memilih menu
-- Melihat total harga pesanan
-- Menambahkan barang ke keranjang
-- Membuat/mengedit/hapus pesanan
+- Memilih menu (v)
+- Melihat total harga pesanan (v)
+- Menambahkan barang ke keranjang (v)
+- Membuat/mengedit/hapus pesanan (v)
 - Membuat/update/hapus Reservasi
 - Melihat rating masing-masing menu
 - Memberikan rating kepada menu
 
 # Category diatas menu management
 # Status order ...->diproses->siap saji
+# Cek status ketersediaan meja di tabel nomor meja
+
+sekarang, bisakah kamu membuat halaman baru untuk fitur pembayaran, jadi:
+1. status data orders yang sudah berubah menjadi completed otomatis diambil ke tabel payments.
+2. setiap user (customer dan cashier) memiliki kuasa yang berbeda
+3. customer bisa memilih metode pembayaran dan cashier mengkonfirmasi pembayaran dari customer
+4. tampilan customer: di halaman order akan muncul tombol bayar,user memasuki halaman web baru, di halaman web itu user bisa memilih metode pembayaran dan menentukan jumlah uang yang akan dibayarkan, jika jumlah uang yang dibayarkan kurang user tidak bisa melakukan pembayaran(tidak berlaku jika user membayar menggunakan cash)
+5. tampilan cashier: akan ada halaman baru dengan nama payment, nanti user melakukan konfirmasi pembayaran(apakah benar customer sudah membayar? jika sudah maka user cashier akan melakukan konfirmasi), jika sudah cashier akan mencetak bukti pembayaran yang berisi menu yang dipesan, uang yang diberikan dan juga kembalian
+6. metode pembayaran terdiri dari beberapa opsi: cash, credit, qris, dll.
+
+file yang dibutuhkan
+1. tabel yang berkaitan
+2. controller 
+3. rute
+4. file blade
