@@ -60,22 +60,52 @@
                     </div>
 
                     <!-- Update Status Form -->
+                    @if($order->status != 'completed')
                     <div class="border-t pt-6">
                         <h3 class="text-lg font-semibold mb-4">Update Order Status</h3>
-                        <form action="{{ route('cashier.orders.update-status', $order) }}" method="POST" class="flex items-center gap-4">
-                            @csrf
-                            @method('PATCH')
-                            <select name="status" class="p-2 border border-gray-300 rounded">
-                                <option value="pending" {{ $order->status == 'pending' ? 'selected' : '' }}>Pending</option>
-                                <option value="processing" {{ $order->status == 'processing' ? 'selected' : '' }}>Processing</option>
-                                <option value="completed" {{ $order->status == 'completed' ? 'selected' : '' }}>Completed</option>
-                                <option value="cancelled" {{ $order->status == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
-                            </select>
-                            <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700">
-                                Update Status
-                            </button>
-                        </form>
+                        
+                        @if($order->status == 'cancelled')
+                            <form action="{{ route('cashier.orders.update-status', $order) }}" method="POST" class="flex items-center gap-4">
+                                @csrf
+                                @method('PATCH')
+                                <input type="hidden" name="status" value="pending">
+                                <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                                    Uncancel Order
+                                </button>
+                            </form>
+                        @else
+                            <div class="flex items-center gap-4">
+                                <!-- Tombol Update Status -->
+                                <form action="{{ route('cashier.orders.update-status', $order) }}" method="POST">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="status" value="{{ 
+                                        $order->status == 'pending' ? 'processing' : 'completed'
+                                    }}">
+                                    <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700">
+                                        {{ $order->status == 'pending' ? 'Process Order' : 'Complete Order' }}
+                                    </button>
+                                </form>
+                                
+                                <!-- Tombol Cancel untuk pending dan processing -->
+                                <form action="{{ route('cashier.orders.update-status', $order) }}" method="POST">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="status" value="cancelled">
+                                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                                        Cancel Order
+                                    </button>
+                                </form>
+                            </div>
+                        @endif
                     </div>
+                    @else
+                    <div class="border-t pt-6">
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <p class="text-green-800 font-medium">✅ Order completed successfully. No further actions available.</p>
+                        </div>
+                    </div>
+                    @endif
 
                     <!-- Back Button -->
                     <div class="mt-6">

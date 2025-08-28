@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Cashier;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Events\OrderStatusUpdated;
 use Illuminate\Http\Request;
 
 class OrderController extends Controller
@@ -30,13 +31,29 @@ class OrderController extends Controller
     }
 
     public function updateStatus(Request $request, Order $order)
-    {
-        $request->validate([
-            'status' => 'required|in:pending,processing,completed,cancelled'
-        ]);
+{
+    $request->validate([
+        'status' => 'required|in:pending,processing,completed,cancelled'
+    ]);
 
-        $order->update(['status' => $request->status]);
-
-        return redirect()->back()->with('success', 'Order status updated successfully.');
+    $oldStatus = $order->status;
+    $newStatus = $request->status;
+    
+    $allowedTransitions = [
+        'pending' => ['processing', 'cancelled'],
+        'processing' => ['completed', 'cancelled'],
+        'cancelled' => ['pending', 'processing'],
+        'completed' => []
+    ];
+    
+    if (!in_array($newStatus, $allowedTransitions[$oldStatus])) {
+        return redirect()->back()->with('error', 'Status transition not allowed.');
     }
+    
+    $order->update(['status' => $newStatus]);
+
+    event(new OrderStatusUpdated($order, $oldStatus, $newStatus));
+
+    return redirect()->back()->with('success', 'Order status updated successfully.');
+}
 }

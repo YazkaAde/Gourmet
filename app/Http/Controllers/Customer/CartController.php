@@ -134,7 +134,6 @@ class CartController extends Controller
             ], 400);
         }
         
-        // Periksa apakah meja sedang digunakan
         $tableInUse = Order::where('table_number', $request->table_number)
             ->whereIn('status', ['pending', 'processing'])
             ->exists();
@@ -159,12 +158,13 @@ class CartController extends Controller
         
         Cart::where('user_id', $user->id)
             ->whereNull('order_id')
-            ->update(['order_id' => $order->id]);
+            ->delete();
         
         return response()->json([
             'success' => true,
             'message' => 'Order created successfully',
-            'order_id' => $order->id
+            'order_id' => $order->id,
+            'cart_cleared' => true
         ]);
     });
 }

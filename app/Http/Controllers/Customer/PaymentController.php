@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Customer;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Events\PaymentStatusUpdated;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -51,7 +52,11 @@ class PaymentController extends Controller
             $paymentData['change'] = $request->amount_paid - $order->total_price;
         }
 
-        Payment::create($paymentData);
+        $payment = Payment::create($paymentData);
+
+        if ($payment->status === 'paid') {
+            event(new PaymentStatusUpdated($payment, 'pending', 'paid'));
+        }
 
         return redirect()->route('customer.orders.show', $order)
             ->with('success', 'Payment processed successfully');

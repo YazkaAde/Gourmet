@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Cashier;
 
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
+use App\Events\PaymentStatusUpdated;
 use Illuminate\Http\Request;
 
 class PaymentController extends Controller
@@ -31,7 +32,10 @@ class PaymentController extends Controller
 
     public function confirm(Payment $payment)
     {
+        $oldStatus = $payment->status;
         $payment->update(['status' => 'paid']);
+
+        event(new PaymentStatusUpdated($payment, $oldStatus, 'paid'));
 
         return redirect()->back()->with('success', 'Payment confirmed successfully');
     }
@@ -49,11 +53,15 @@ class PaymentController extends Controller
             'amount_paid' => 'required|numeric|min:' . $payment->amount
         ]);
 
+        $oldStatus = $payment->status;
+        
         $payment->update([
             'amount_paid' => $request->amount_paid,
             'change' => $request->amount_paid - $payment->amount,
             'status' => 'paid'
         ]);
+
+        event(new PaymentStatusUpdated($payment, $oldStatus, 'paid'));
 
         return redirect()->back()->with('success', 'Cash payment processed successfully');
     }

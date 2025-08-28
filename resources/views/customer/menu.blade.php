@@ -99,11 +99,11 @@
 
             <!-- Floating Cart Button -->
             <a href="{{ route('customer.cart.index') }}" 
-                class="fixed bottom-8 right-8 bg-primary-600 text-white flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-sm shadow-lg hover:bg-primary-700 transition transform hover:scale-105">
+                class="fixed bottom-8 right-8 bg-primary-600 text-white flex items-center gap-2 px-6 py-3 rounded-full font-semibth text-sm shadow-lg hover:bg-primary-700 transition transform hover:scale-105">
                 <svg class="w-6 h-6 text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M4 4a1 1 0 0 1 1-1h1.5a1 1 0 0 1 .979.796L7.939 6H19a1 1 0 0 1 .979 1.204l-1.25 6a1 1 0 0 1-.979.796H9.604l-.208 1H17a3 3 0 1 1-2.83 2h-2.34a3 3 0 1 1-4.009-1.76L5.686 5H5a1 1 0 0 1-1-1Z"/>
                 </svg>
-                Cart (<span id="cart-count">{{ auth()->user()->carts->sum('quantity') ?? 0 }}</span>)
+                Cart (<span id="cart-count">{{ auth()->user()->carts()->distinct('menu_id')->count('menu_id') }}</span>)
             </a>
         </div>
     </div>

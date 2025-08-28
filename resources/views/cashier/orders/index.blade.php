@@ -86,14 +86,50 @@
                                             {{ $order->created_at->format('M d, Y H:i') }}
                                         </td>
                                         <td class="px-6 py-4 border-b border-gray-300">
-                                            <a href="{{ route('cashier.orders.show', $order) }}" 
-                                               class="text-primary-600 hover:text-primary-800 mr-3">
-                                                View
-                                            </a>
-                                            <button onclick="openStatusModal({{ $order->id }}, '{{ $order->status }}')"
-                                                    class="text-blue-600 hover:text-blue-800">
-                                                Edit Status
-                                            </button>
+                                            <div class="flex gap-2">
+                                                @if($order->status == 'cancelled')
+                                                    <!-- Tombol Uncancel untuk status cancelled -->
+                                                    <form action="{{ route('cashier.orders.update-status', $order) }}" method="POST">
+                                                        @csrf
+                                                        @method('PATCH')
+                                                        <input type="hidden" name="status" value="pending">
+                                                        <button type="submit" class="text-green-600 hover:text-green-800 text-sm">
+                                                            Uncancel
+                                                        </button>
+                                                    </form>
+                                                @elseif($order->status != 'completed')
+                                                    <!-- Tombol Update Status untuk pending dan processing -->
+                                                    <form action="{{ route('cashier.orders.update-status', $order) }}" method="POST">
+                                                        @csrf
+                                                        @method('PATCH')
+                                                        <input type="hidden" name="status" value="{{ 
+                                                            $order->status == 'pending' ? 'processing' : 'completed'
+                                                        }}">
+                                                        <button type="submit" class="text-blue-600 hover:text-blue-800 text-sm">
+                                                            {{ $order->status == 'pending' ? 'Process' : 'Complete' }}
+                                                        </button>
+                                                    </form>
+                                                    
+                                                    <!-- Tombol Cancel untuk pending dan processing -->
+                                                    <form action="{{ route('cashier.orders.update-status', $order) }}" method="POST">
+                                                        @csrf
+                                                        @method('PATCH')
+                                                        <input type="hidden" name="status" value="cancelled">
+                                                        <button type="submit" class="text-red-600 hover:text-red-800 text-sm">
+                                                            Cancel
+                                                        </button>
+                                                    </form>
+                                                @else
+                                                    <!-- Tidak ada tombol untuk status completed -->
+                                                    <span class="text-gray-500 text-sm">No actions</span>
+                                                @endif
+                                                
+                                                <!-- Tombol View selalu tersedia -->
+                                                <a href="{{ route('cashier.orders.show', $order) }}" 
+                                                   class="text-primary-600 hover:text-primary-800 text-sm">
+                                                    View
+                                                </a>
+                                            </div>
                                         </td>
                                     </tr>
                                 @empty
@@ -115,48 +151,4 @@
             </div>
         </div>
     </div>
-
-    <!-- Status Modal -->
-    <div id="statusModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg w-96 p-6">
-            <h3 class="text-lg font-medium mb-4">Update Order Status</h3>
-            <form id="statusForm" method="POST">
-                @csrf
-                @method('PATCH')
-                <select name="status" class="w-full p-2 border border-gray-300 rounded mb-4">
-                    <option value="pending">Pending</option>
-                    <option value="processing">Processing</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                </select>
-                <div class="flex justify-end gap-2">
-                    <button type="button" onclick="closeStatusModal()" class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded">Update</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <script>
-        function openStatusModal(orderId, currentStatus) {
-            const modal = document.getElementById('statusModal');
-            const form = document.getElementById('statusForm');
-            
-            form.action = `/cashier/orders/${orderId}/status`;
-            form.querySelector('select[name="status"]').value = currentStatus;
-            
-            modal.classList.remove('hidden');
-        }
-
-        function closeStatusModal() {
-            document.getElementById('statusModal').classList.add('hidden');
-        }
-
-        // Close modal when clicking outside
-        document.getElementById('statusModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeStatusModal();
-            }
-        });
-    </script>
 </x-app-layout>
