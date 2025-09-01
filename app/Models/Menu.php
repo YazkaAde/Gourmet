@@ -24,4 +24,30 @@ class Menu extends Model
 {
     return $this->belongsTo(Category::class);
 }
+public function reviews()
+{
+    return $this->hasMany(Review::class);
+}
+
+public function getAverageRatingAttribute()
+{
+    return $this->reviews()->avg('rating') ?: 0;
+}
+
+public function getRatingCountAttribute()
+{
+    return $this->reviews()->count();
+}
+
+public function getRatingDistributionAttribute()
+{
+    return $this->reviews()
+        ->selectRaw('rating, COUNT(*) as count')
+        ->groupBy('rating')
+        ->orderBy('rating', 'desc')
+        ->get()
+        ->mapWithKeys(function ($item) {
+            return [$item->rating => $item->count];
+        });
+}
 }

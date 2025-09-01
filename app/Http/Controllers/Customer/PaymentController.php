@@ -13,18 +13,16 @@ class PaymentController extends Controller
 {
     public function create(Order $order)
     {
-        // Authorization check
-        if ($order->user_id !== Auth::id() || $order->status !== 'completed') {
-            abort(403, 'Unauthorized or order not completed');
-        }
+    if ($order->user_id !== Auth::id() || $order->status !== 'completed') {
+        abort(403, 'Unauthorized or order not completed');
+    }
 
-        // Check if payment already exists
-        if ($order->payment) {
-            return redirect()->route('customer.orders.show', $order)
-                ->with('info', 'Payment already processed');
-        }
+    if ($order->payment) {
+        return redirect()->route('customer.orders.show', $order)
+            ->with('info', 'Payment already processed');
+    }
 
-        return view('customer.payment', compact('order'));
+    return view('customer.payment', compact('order'));
     }
 
     public function store(Request $request, Order $order)
@@ -59,6 +57,6 @@ class PaymentController extends Controller
         }
 
         return redirect()->route('customer.orders.show', $order)
-            ->with('success', 'Payment processed successfully');
+        ->with('success', 'Payment processed successfully');
     }
 }

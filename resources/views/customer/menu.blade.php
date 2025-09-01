@@ -53,6 +53,24 @@
                             @endif
                         </div>
                     </div>
+
+                    <!-- Di dalam article menu card, tambahkan: -->
+                    <div class="flex items-center mb-3">
+                        <div class="flex text-yellow-400">
+                            @for($i = 1; $i <= 5; $i++)
+                                @if($i <= floor($menu->average_rating))
+                                    ★
+                                @elseif($i - 0.5 <= $menu->average_rating)
+                                    ⯨
+                                @else
+                                    ☆
+                                @endif
+                            @endfor
+                        </div>
+                        <span class="text-sm text-gray-600 ml-2">
+                            ({{ number_format($menu->average_rating, 1) }}) • {{ $menu->rating_count }} reviews
+                        </span>
+                    </div>
                     
                     <form action="{{ route('customer.cart.store') }}" method="POST" class="mt-4">
                         @csrf

@@ -12,24 +12,30 @@ class OrderController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $orders = Order::with(['carts.menu'])
-            ->where('user_id', $user->id)
-            ->orderBy('created_at', 'desc')
-            ->paginate(10); // Menambahkan pagination
-            
-        return view('customer.orders', compact('orders')); // Mengubah ke customer.orders
+        $orders = Order::with(['carts.menu', 'carts.menu.reviews' => function($query) use ($user) {
+            $query->where('user_id', $user->id);
+        }])
+        ->where('user_id', $user->id)
+        ->orderBy('created_at', 'desc')
+        ->paginate(10);
+        
+        // Tambahkan eager loading untuk payment
+        $orders->load('payment');
+        
+        return view('customer.orders.index', compact('orders'));
     }
     
     public function show(Order $order)
-    {
-        // Authorization check - pastikan user hanya bisa melihat order miliknya
-        if ($order->user_id !== Auth::id()) {
-            abort(403);
-        }
-        
-        $order->load(['carts.menu', 'reservation', 'table']);
-        
-        return view('customer.order-show', compact('order')); // Akan membuat file terpisah nanti
+{
+    if ($order->user_id !== Auth::id()) {
+        abort(403);
+    }
+    
+    $order->load(['carts.menu', 'carts.menu.reviews' => function($query) {
+        $query->where('user_id', auth()->id());
+    }, 'reservation', 'table', 'payment']);
+    
+    return view('customer.orders.show', compact('order'));
     }
 
     // Method untuk membatalkan order
@@ -48,4 +54,5 @@ class OrderController extends Controller
 
         return redirect()->route('customer.orders.index')->with('success', 'Order cancelled successfully.');
     }
+
 }
