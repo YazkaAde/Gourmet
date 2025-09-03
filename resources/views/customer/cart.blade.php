@@ -264,7 +264,7 @@
                             .then(data => {
                                 if (data.success) {
                                     alert('Order created successfully! Your order ID: ' + data.order_id);
-                                    window.location.reload();
+                                    window.location.href = '{{ route("customer.orders.index") }}';
                                 } else {
                                     alert('Error: ' + data.message);
                                     checkoutBtn.disabled = false;

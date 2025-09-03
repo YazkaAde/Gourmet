@@ -117,11 +117,18 @@ Route::middleware(['auth', 'role:customer', CheckBlacklist::class])->group(funct
 
     // Customer Review Routes
     Route::prefix('reviews')->name('customer.reviews.')->group(function() {
-        Route::get('/order/{order}/menu/{menu}/create', [\App\Http\Controllers\Customer\ReviewController::class, 'create'])->name('create');
-        Route::post('/order/{order}/menu/{menu}', [\App\Http\Controllers\Customer\ReviewController::class, 'store'])->name('store');
-        Route::delete('/{review}', [\App\Http\Controllers\Customer\ReviewController::class, 'destroy'])->name('destroy');
+        Route::get('/order/{order}/menu/{menu}/create', [\App\Http\Controllers\Customer\ReviewController::class, 'create'])
+            ->name('create')
+            ->whereNumber(['order', 'menu']);
+        
+        Route::post('/order/{order}/menu/{menu}', [\App\Http\Controllers\Customer\ReviewController::class, 'store'])
+            ->name('store')
+            ->whereNumber(['order', 'menu']);
+        
+        Route::delete('/{review}', [\App\Http\Controllers\Customer\ReviewController::class, 'destroy'])
+            ->name('destroy')
+            ->whereNumber('review');
     });
-
 
     Route::get('/available-tables', [TableController::class, 'availableTables'])->name('api.available-tables');
 

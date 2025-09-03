@@ -136,6 +136,56 @@
                         </table>
                     </div>
 
+                    @if($order->status == 'completed')
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <h4 class="text-lg font-semibold mb-4">Reviews</h4>
+                        <div class="space-y-4">
+                            @foreach($order->carts as $cartItem)
+                                @php
+                                    $userReview = $cartItem->menu->reviews->firstWhere('user_id', auth()->id());
+                                @endphp
+                                
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div class="flex items-center">
+                                        @if($cartItem->menu->image_url)
+                                            <img src="{{ asset('storage/' . $cartItem->menu->image_url) }}" 
+                                                alt="{{ $cartItem->menu->name }}"
+                                                class="w-10 h-10 object-cover rounded mr-3"
+                                                onerror="this.style.display='none'">
+                                        @endif
+                                        <span class="font-medium">{{ $cartItem->menu->name }}</span>
+                                    </div>
+                                    
+                                    <div>
+                                        @if($order->payment && $order->payment->status == 'paid')
+                                            @if(!$userReview)
+                                                <a href="{{ route('customer.reviews.create', ['order' => $order, 'menu' => $cartItem->menu]) }}" 
+                                                class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm">
+                                                    ✩ Write Review
+                                                </a>
+                                            @else
+                                                <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                                                    ✓ Reviewed
+                                                </span>
+                                                <form action="{{ route('customer.reviews.destroy', $userReview) }}" method="POST" class="inline ml-2">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" 
+                                                            class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm hover:bg-red-200"
+                                                            onclick="return confirm('Are you sure you want to delete your review?')">
+                                                        Delete
+                                                    </button>
+                                                </form>
+                                            @endif
+                                        @else
+                                            <span class="text-sm text-gray-500">Complete payment to review</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
                     @if($order->status == 'completed' && !$order->payment)
                     <div class="mt-6 text-center">
                         <a href="{{ route('customer.orders.payment.create', $order) }}" 

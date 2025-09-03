@@ -31,28 +31,22 @@ class CartController extends Controller
     return view('customer.cart', compact('carts', 'menus'));
 }
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'menu_id' => 'required|exists:menus,id',
-            'quantity' => 'required|integer|min:1'
-        ]);
+public function store(Request $request)
+{
+    $request->validate([
+        'menu_id' => 'required|exists:menus,id',
+        'quantity' => 'required|integer|min:1'
+    ]);
 
-        $menu = Menu::findOrFail($request->menu_id);
-        $totalPrice = $menu->price * $request->quantity;
+    $menu = Menu::findOrFail($request->menu_id);
+    $totalPrice = $menu->price * $request->quantity;
 
-        $cart = auth()->user()->carts()
-            ->where('menu_id', $request->menu_id)
-            ->whereNull('order_id')
-            ->first();
-            
+    $cart = auth()->user()->carts()
+        ->where('menu_id', $request->menu_id)
+        ->first();
 
-        if ($cart) {
-            $cart->update([
-                'quantity' => $cart->quantity + $request->quantity,
-                'price' => $cart->price + $totalPrice
-            ]);
-        } else {
+    if ($cart) {
+        if ($cart->order_id) {
             Cart::create([
                 'user_id' => auth()->id(),
                 'menu_id' => $request->menu_id,
@@ -60,9 +54,23 @@ class CartController extends Controller
                 'price' => $totalPrice,
                 'order_id' => null
             ]);
+        } else {
+            $cart->update([
+                'quantity' => $cart->quantity + $request->quantity,
+                'price' => $cart->price + $totalPrice
+            ]);
         }
-        
-        $totalQuantity = auth()->user()->carts()
+    } else {
+        Cart::create([
+            'user_id' => auth()->id(),
+            'menu_id' => $request->menu_id,
+            'quantity' => $request->quantity,
+            'price' => $totalPrice,
+            'order_id' => null
+        ]);
+    }
+    
+    $totalQuantity = auth()->user()->carts()
         ->whereNull('order_id')
         ->sum('quantity');
     
@@ -74,7 +82,8 @@ class CartController extends Controller
         ]);
     }
     
-    return redirect()->back()->with('success', 'Item added to cart!');    }
+    return redirect()->back()->with('success', 'Item added to cart!');
+}
 
     public function update(Request $request, $id)
 {
@@ -112,7 +121,6 @@ class CartController extends Controller
         return back()->with('success', 'Item removed from cart');
     }
 
-    // Method checkout
     public function checkout(Request $request)
 {
     $request->validate([
@@ -158,7 +166,7 @@ class CartController extends Controller
         
         Cart::where('user_id', $user->id)
             ->whereNull('order_id')
-            ->delete();
+            ->update(['order_id' => $order->id]);
         
         return response()->json([
             'success' => true,

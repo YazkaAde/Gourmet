@@ -9,11 +9,8 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             @if($orders->isEmpty())
                 <div class="bg-white p-6 rounded-lg shadow text-center">
-                    <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7极6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1M8 7H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2M8 极7h8"/>
-                    </svg>
                     <p class="text-gray-600 mb-4">You don't have any orders yet</p>
-                    <a href="{{ route('customer.menu.index') }}" class="inline-flex items-center px-4极y-2 bg-primary-600 border border-transparent rounded-md font-semibold text-white hover:bg-primary-700 transition">
+                    <a href="{{ route('customer.menu.index') }}" class="inline-flex items-center px-4 py-2 bg-primary-600 border border-transparent rounded-md font-semibold text-white hover:bg-primary-700 transition">
                         Browse Menu
                     </a>
                 </div>
@@ -52,9 +49,9 @@
                                                     <div class="flex items-center flex-grow">
                                                         @if($cartItem->menu->image_url)
                                                             <img src="{{ asset('storage/' . $cartItem->menu->image_url) }}" 
-                                                                 alt="{{ $cartItem->menu->name }}"
-                                                                 class="w-10 h-10 object-cover rounded mr-3"
-                                                                 onerror="this.style.display='none'">
+                                                                alt="{{ $cartItem->menu->name }}"
+                                                                class="w-10 h-10 object-cover rounded mr-3"
+                                                                onerror="this.style.display='none'">
                                                         @endif
                                                         <div class="flex-grow">
                                                             <p class="text-gray-800">{{ $cartItem->menu->name }}</p>
@@ -62,32 +59,38 @@
                                                             <p class="text-gray-800">Rp {{ number_format($cartItem->menu->price * $cartItem->quantity, 0) }}</p>
                                                             
                                                             <!-- Tombol Review untuk setiap item -->
-                                                            @if($order->status == 'completed')
+                                                            @if($order->status == 'completed' && $order->payment && $order->payment->status == 'paid')
                                                                 @php
-                                                                    $userReview = $cartItem->menu->reviews->firstWhere('user_id', auth()->id());
+                                                                    $userReview = $userReviews[$cartItem->menu_id] ?? null;
                                                                 @endphp
                                                                 
                                                                 @if(!$userReview)
                                                                     <div class="mt-2">
                                                                         <a href="{{ route('customer.reviews.create', ['order' => $order, 'menu' => $cartItem->menu]) }}" 
-                                                                           class="text-sm text-primary-600 hover:text-primary-800">
+                                                                        class="inline-flex items-center px-3 py-1 bg-primary-600 text-white text-sm rounded-md hover:bg-primary-700 transition">
                                                                             ✩ Write Review
                                                                         </a>
                                                                     </div>
                                                                 @else
-                                                                    <div class="mt-2">
-                                                                        <span class="text-sm text-green-600">✓ Reviewed</span>
+                                                                    <div class="mt-2 flex items-center gap-2">
+                                                                        <span class="px-2极y-1 bg-green-100 text-green-800 text-sm rounded-md">
+                                                                            ✓ Reviewed ({{ $userReview->rating }}★)
+                                                                        </span>
                                                                         <form action="{{ route('customer.reviews.destroy', $userReview) }}" method="POST" class="inline">
                                                                             @csrf
                                                                             @method('DELETE')
                                                                             <button type="submit" 
-                                                                                    class="text-sm text-red-600 hover:text-red-800 ml-2"
+                                                                                    class="px-2 py-1 bg-red-100 text-red-800 text-sm rounded-md hover:bg-red-200"
                                                                                     onclick="return confirm('Are you sure you want to delete your review?')">
-                                                                                Delete Review
+                                                                                Delete
                                                                             </button>
                                                                         </form>
                                                                     </div>
                                                                 @endif
+                                                            @elseif($order->status == 'completed' && (!$order->payment || $order->payment->status != 'paid'))
+                                                                <div class="mt-2">
+                                                                    <span class="text-xs text-gray-500">Complete payment to review</span>
+                                                                </div>
                                                             @endif
                                                         </div>
                                                     </div>
@@ -97,7 +100,7 @@
                                     </div>
 
                                     <!-- Payment and Cancel Buttons -->
-                                    <div class="mt-4 pt-4 border-t flex gap-3">
+                                    <div class="mt-4 pt-4 border-t flex gap-3 items-center">
                                         @if($order->status == 'pending')
                                             <form action="{{ route('customer.orders.cancel', $order) }}" method="POST">
                                                 @csrf
@@ -114,18 +117,11 @@
                                             @if($order->payment)
                                                 <div class="flex items-center gap-2">
                                                     <span class="px-3 py-1 bg-gray-100 text-gray-800 rounded text-sm">
-                                                        Payment Status: 
-                                                        <span class="font-medium 
-                                                            @if($order->payment->status == 'paid') text-green-600
-                                                            @elseif($order->payment->status == 'pending') text-yellow-600
-                                                            @else text-red-600
-                                                            @endif">
-                                                            {{ ucfirst($order->payment->status) }}
-                                                        </span>
+                                                        Payment: {{ ucfirst($order->payment->status) }}
                                                     </span>
                                                     @if($order->payment->status == 'paid')
                                                         <span class="px-3 py-1 bg-green-100 text-green-800 rounded text-sm">
-                                                            Paid with: {{ ucfirst(str_replace('_', ' ', $order->payment->payment_method)) }}
+                                                            {{ ucfirst(str_replace('_', ' ', $order->payment->payment_method)) }}
                                                         </span>
                                                     @endif
                                                 </div>
@@ -136,12 +132,11 @@
                                                 </a>
                                             @endif
                                         @endif
-                                        <div class="mt-4">
-                                            <a href="{{ route('customer.orders.show', $order) }}" 
-                                               class="text-primary-600 hover:text-primary-800 text-sm justify-end">
-                                                View Order Details
-                                            </a>
-                                        </div>
+                                        
+                                        <a href="{{ route('customer.orders.show', $order) }}" 
+                                           class="ml-auto px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition">
+                                            View Details
+                                        </a>
                                     </div>
                                 </div>
                             @endforeach

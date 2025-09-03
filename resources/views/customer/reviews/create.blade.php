@@ -10,7 +10,7 @@
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 bg-white border-b border-gray-200">
                     <h3 class="text-lg font-semibold mb-4">Review: {{ $menu->name }}</h3>
-                    <p class="text-gray-600 mb-6">From Order #{{ $order->id }}</p>
+                    <p class="text-gray-600 mb-6">Review for {{ $menu->name }} from Order #{{ $order->id }}</p>
 
                     <form action="{{ route('customer.reviews.store', ['order' => $order, 'menu' => $menu]) }}" method="POST">
                         @csrf

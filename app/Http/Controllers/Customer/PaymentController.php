@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Auth;
 class PaymentController extends Controller
 {
     public function create(Order $order)
-    {
+{
     if ($order->user_id !== Auth::id() || $order->status !== 'completed') {
         abort(403, 'Unauthorized or order not completed');
     }
@@ -22,12 +22,13 @@ class PaymentController extends Controller
             ->with('info', 'Payment already processed');
     }
 
+    $order->load(['carts.menu', 'payment']);
+
     return view('customer.payment', compact('order'));
-    }
+}
 
     public function store(Request $request, Order $order)
     {
-        // Authorization check
         if ($order->user_id !== Auth::id() || $order->status !== 'completed') {
             abort(403);
         }
@@ -57,6 +58,6 @@ class PaymentController extends Controller
         }
 
         return redirect()->route('customer.orders.show', $order)
-        ->with('success', 'Payment processed successfully');
+            ->with('success', 'Payment processed successfully');
     }
 }

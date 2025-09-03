@@ -38,4 +38,8 @@ class Cart extends Model
     {
         return $query->whereNull('order_id');
     }
+    public function scopeWithOrder($query)
+{
+    return $query->whereNotNull('order_id');
+}
 }

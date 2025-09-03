@@ -31,14 +31,15 @@ class PaymentController extends Controller
     }
 
     public function confirm(Payment $payment)
-    {
-        $oldStatus = $payment->status;
-        $payment->update(['status' => 'paid']);
+{
+    $oldStatus = $payment->status;
+    $payment->update(['status' => 'paid']);
 
-        event(new PaymentStatusUpdated($payment, $oldStatus, 'paid'));
+    event(new PaymentStatusUpdated($payment, $oldStatus, 'paid'));
 
-        return redirect()->back()->with('success', 'Payment confirmed successfully');
-    }
+    return redirect()->route('cashier.payments.receipt', $payment)
+        ->with('success', 'Payment confirmed successfully');
+}
 
     public function printReceipt(Payment $payment)
     {
@@ -48,21 +49,22 @@ class PaymentController extends Controller
     }
 
     public function processCashPayment(Request $request, Payment $payment)
-    {
-        $request->validate([
-            'amount_paid' => 'required|numeric|min:' . $payment->amount
-        ]);
+{
+    $request->validate([
+        'amount_paid' => 'required|numeric|min:' . $payment->amount
+    ]);
 
-        $oldStatus = $payment->status;
-        
-        $payment->update([
-            'amount_paid' => $request->amount_paid,
-            'change' => $request->amount_paid - $payment->amount,
-            'status' => 'paid'
-        ]);
+    $oldStatus = $payment->status;
+    
+    $payment->update([
+        'amount_paid' => $request->amount_paid,
+        'change' => $request->amount_paid - $payment->amount,
+        'status' => 'paid'
+    ]);
 
-        event(new PaymentStatusUpdated($payment, $oldStatus, 'paid'));
+    event(new PaymentStatusUpdated($payment, $oldStatus, 'paid'));
 
-        return redirect()->back()->with('success', 'Cash payment processed successfully');
-    }
+    return redirect()->route('cashier.payments.receipt', $payment)
+        ->with('success', 'Cash payment processed successfully');
+}
 }

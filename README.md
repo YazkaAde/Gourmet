@@ -12,14 +12,14 @@ Sebuah aplikasi yang dapat digunakan untuk pemesanan makanan dan minuman pada se
 
 # Admin/Pemilik
 - Melihat laporan/history penjualan
-- Melihat rating yang diberikan oleh user
+- Melihat rating yang diberikan oleh user (v)
 - Membalas rating yang diberikan oleh user
 - Menambah/mengubah/menghapus daftar menu dan harga (v)
 - Menambah/mengubah/menghapus daftar category (v)
 - Menambah/mengubah/menghapus meja restoran (v)
 - Menambah/mengubah/menghapus user cashier (v)
 - Menambah/mengubah/menghapus flyer promo
-- Memblacklist/unblacklist user customer
+- Memblacklist/unblacklist user customer (v)
 - Melihat rating masing-masing menu
 
 # Cashier/Kasir
@@ -48,19 +48,3 @@ Sebuah aplikasi yang dapat digunakan untuk pemesanan makanan dan minuman pada se
 # Status order ...->diproses->siap saji
 # Cek status ketersediaan meja di tabel nomor meja
 
-saya ingin membuat fitur rating menggunakan file Review, file ini digunakan untuk memberikan rating kepada menu yang telah di order. perhatikan ketentuan berikut:
-Customer:
-1. user customer dapat memberikan review kepada menu yang sudah dipesan, user customer lain juga dapat melihat rata rata dari rating yang diberikan di halaman menu dan cart
-2. akan ada tombol untuk meriview di bagian orders, ketika ditekan akan berisi sebuah card
-3. card review berisi username yang melakukan rewiew, form berisi 5 bintang yang bisa dipilih mau diberi berapa bintang, text yang bisa diisi komentar oleh user customer.
-4. customer bisa menghapus review namun tidak bisa mengedit
-Admin:
-1. user admin bisa melihat card review yang berisi username, tanggal review, bintang yang diberikan, dan juga komentar customer
-2. admin hanya bisa membalas komentar customer dan tidak bisa menghapusnya.
-3. jika akun user di blacklist, review masih tersimpan dan tidak hilang
-4. Admin bisa melihat rata-rata rating, jumlah rating dan berapa yang memberikan rating 5, berapa yang memberikan rating 4 dan seterusnya. 
-Admin dapat melihat laporan singkat tentang review di dashboard dan dapat melihat detailnya jika user admin menekan tombol detail
-
-file yang dibutuhkan:
-menu.blade, cart.blade, order.blade, 
-dashboard.blade, 

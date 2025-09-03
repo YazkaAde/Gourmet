@@ -44,7 +44,7 @@ class Order extends Model
         return $this->hasMany(Cart::class);
     }
 
-    public function payment(): HasOne
+    public function payment()
     {
         return $this->hasOne(Payment::class);
     }
