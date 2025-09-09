@@ -22,6 +22,7 @@ class Reservation extends Model
 
     protected $casts = [
         'reservation_date' => 'date',
+        'reservation_time' => 'datetime:H:i',
     ];
 
     // Relasi ke user
@@ -41,4 +42,76 @@ class Reservation extends Model
     {
         return $this->hasMany(Order::class);
     }
+
+    public function getReservationFeeAttribute()
+    {
+        $table = NumberTable::where('table_number', $this->table_number)->first();
+        $capacity = $table ? $table->table_capacity : 0;
+        
+        $basePrice = $capacity * 10000;
+        
+        if ($capacity >= 8) {
+            $basePrice = $basePrice * 0.8;
+        }
+        
+        return $basePrice;
+    }
+
+    public function hasPreOrder()
+    {
+        return $this->orders()->exists();
+    }
+
+// Hitung cancellation fee
+    public function getCancellationFeeAttribute()
+    {
+        if (!$this->hasPreOrder()) {
+            return 0;
+        }
+        
+        $totalFoodPrice = $this->orders->sum('total_price');
+        return $totalFoodPrice * 0.5;
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+    
+    public function hasPaidPayment()
+    {
+        return $this->payments()->where('status', '=', 'paid')->exists();
+    }
+
+    public function getTotalPaidAttribute()
+    {
+        return $this->payments()->where('status', 'paid')->sum('amount');
+    }
+
+    public function getRemainingBalanceAttribute()
+    {
+        return $this->reservation_fee - $this->total_paid;
+    }
+
+    public function preOrderItems()
+    {
+        return $this->hasMany(PreOrderItem::class);
+    }
+
+    public function getTotalAmountAttribute()
+    {
+        $table = $this->table;
+        $reservationFee = $table->table_capacity * 10000;
+        
+        if ($table->table_capacity >= 8) {
+            $reservationFee = $reservationFee * 0.8;
+        }
+        
+        $menuTotal = $this->preOrderItems->sum(function($item) {
+            return $item->price * $item->quantity;
+        });
+        
+        return $reservationFee + $menuTotal;
+    }
+
 }

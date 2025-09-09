@@ -45,6 +45,8 @@ Sebuah aplikasi yang dapat digunakan untuk pemesanan makanan dan minuman pada se
 - Memberikan rating kepada menu
 
 # Category diatas menu management
-# Status order ...->diproses->siap saji
 # Cek status ketersediaan meja di tabel nomor meja
+# memindah data dari carts ke order item
+# menyelesaikan fitur reservasi
+
 

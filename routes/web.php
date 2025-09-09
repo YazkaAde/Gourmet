@@ -15,7 +15,9 @@ use App\Http\Controllers\Admin\BlacklistController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Cashier\PaymentController;
 use App\Http\Controllers\Admin\NumberTableController;
+use App\Http\Controllers\Customer\ReservationController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Customer\ReservationPaymentController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -59,8 +61,8 @@ Route::middleware(['auth', 'role:admin', CheckBlacklist::class])->prefix('admin'
         Route::delete('/{id}', [BlacklistController::class, 'destroy'])->name('blacklist.destroy');
     });
 
-    // Admin Review Routes
-    Route::middleware(['auth', 'role:admin', CheckBlacklist::class])->prefix('admin/reviews')->name('admin.reviews.')->group(function() {
+    // Admin Review Routes - DIPINDAHKAN ke dalam grup admin yang sudah ada
+    Route::prefix('reviews')->name('reviews.')->group(function() {
         Route::get('/', [ReviewController::class, 'index'])->name('index');
         Route::get('/{review}', [ReviewController::class, 'show'])->name('show');
         Route::post('/{review}/reply', [ReviewController::class, 'reply'])->name('reply');
@@ -87,6 +89,13 @@ Route::middleware(['auth', 'role:cashier', CheckBlacklist::class])->prefix('cash
         Route::post('/{payment}/confirm', [PaymentController::class, 'confirm'])->name('confirm');
         Route::post('/{payment}/process-cash', [PaymentController::class, 'processCashPayment'])->name('process-cash');
         Route::get('/{payment}/receipt', [PaymentController::class, 'printReceipt'])->name('receipt');
+    });
+
+    // Reservation Routes untuk Cashier
+    Route::prefix('reservations')->name('reservations.')->group(function() {
+        Route::get('/', [\App\Http\Controllers\Cashier\ReservationController::class, 'index'])->name('index');
+        Route::get('/{reservation}', [\App\Http\Controllers\Cashier\ReservationController::class, 'show'])->name('show');
+        Route::patch('/{reservation}/status', [\App\Http\Controllers\Cashier\ReservationController::class, 'updateStatus'])->name('update-status');
     });
 });
 
@@ -139,6 +148,27 @@ Route::middleware(['auth', 'role:customer', CheckBlacklist::class])->group(funct
         
         return response()->json($tables);
     })->name('api.available-tables');
+    // Reservasi
+    Route::prefix('reservations')->name('customer.reservations.')->group(function() {
+        Route::get('/', [ReservationController::class, 'index'])->name('index');
+        Route::get('/create', [ReservationController::class, 'create'])->name('create');
+        Route::post('/', [ReservationController::class, 'store'])->name('store');
+        Route::get('/{reservation}', [ReservationController::class, 'show'])->name('show');
+        Route::get('/{reservation}/edit', [ReservationController::class, 'edit'])->name('edit');
+        Route::put('/{reservation}', [ReservationController::class, 'update'])->name('update');
+        Route::delete('/{reservation}/cancel', [ReservationController::class, 'cancel'])->name('cancel');
+        
+        // Menu routes untuk reservasi - PERBAIKAN DI SINI
+        Route::prefix('{reservation}/menu')->name('menu.')->group(function() {
+            Route::get('/add', [ReservationController::class, 'addMenu'])->name('add');
+            Route::post('/store', [ReservationController::class, 'storeMenu'])->name('store');
+            Route::delete('/clear', [ReservationController::class, 'clearMenu'])->name('clear');
+        });
+        
+        // Payment routes
+        Route::get('/{reservation}/payment/create', [ReservationPaymentController::class, 'create'])->name('payment.create');
+        Route::post('/{reservation}/payment', [ReservationPaymentController::class, 'store'])->name('payment.store');
+    });
 });
 
 require __DIR__.'/auth.php';

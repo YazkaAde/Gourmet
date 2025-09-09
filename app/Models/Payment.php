@@ -12,6 +12,7 @@ class Payment extends Model
 
     protected $fillable = [
         'order_id',
+        'reservation_id',
         'user_id',
         'amount',
         'amount_paid',
@@ -21,8 +22,20 @@ class Payment extends Model
         'receipt_url',
         'notes'
     ];
+    
+    public function reservation(): BelongsTo
+    {
+        return $this->belongsTo(Reservation::class);
+    }
+    
+    public function scopeReservationPayments($query)
+    {
+        return $query->whereNotNull('reservation_id');
+    }
 
     protected $casts = [
+        'order_id' => 'integer',
+        'reservation_id' => 'integer',
         'amount' => 'decimal:2',
         'amount_paid' => 'decimal:2',
         'change' => 'decimal:2',

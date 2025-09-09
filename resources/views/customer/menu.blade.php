@@ -116,13 +116,24 @@
             </div>
 
             <!-- Floating Cart Button -->
-            <a href="{{ route('customer.cart.index') }}" 
-                class="fixed bottom-8 right-8 bg-primary-600 text-white flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-sm shadow-lg hover:bg-primary-700 transition transform hover:scale-105 z-50">
-                <svg class="w-6 h-6 text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M4 4a1 1 0 0 1 1-1h1.5a1 1 0 0 1 .979.796L7.939 6H19a1 1 0 0 1 .979 1.204l-1.25 6a1 1 0 0 1-.979.796H9.604l-.208 1H17a3 3 0 1 1-2.83 2h-2.34a3 3 0 1 1-4.009-1.76L5.686 5H5a1 1 0 0 1-1-1Z"/>
-                </svg>
-                Cart (<span id="cart-count">{{ auth()->user()->carts()->whereNull('order_id')->count() }}</span>)
-            </a>
+            <div class="fixed bottom-8 right-8 flex flex-col gap-3 z-50">
+                <a href="{{ route('customer.cart.index') }}" 
+                    class="bg-primary-600 text-white flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-sm shadow-lg hover:bg-primary-700 transition transform hover:scale-105">
+                    <svg class="w-6 h-6 text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M4 4a1 1 0 0 1 1-1h1.5a1 1 0 0 1 .979.796L7.939 6H19a1 1 0 0 1 .979 1.204l-1.25 6a1 1 0 0 1-.979.796H9.604l-.208 1H17a3 3 0 1 1-2.83 2h-2.34a3 3 0 1 1-4.009-1.76L5.686 5H5a1 1 0 0 1-1-1Z"/>
+                    </svg>
+                    Cart (<span id="cart-count">{{ auth()->user()->carts()->whereNull('order_id')->count() }}</span>)
+                </a>
+
+                <!-- Tombol Reservasi -->
+                <a href="{{ route('customer.reservations.create') }}" 
+                    class="bg-green-600 text-white flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-sm shadow-lg hover:bg-green-700 transition transform hover:scale-105">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    Reservasi
+                </a>
+            </div>
 
         </div>
     </div>

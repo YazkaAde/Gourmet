@@ -48,6 +48,9 @@
                         <x-nav-link :href="route('customer.orders.index')" :active="request()->routeIs('customer.orders.*')">
                             {{ __('Orders') }}
                         </x-nav-link>
+                        <x-nav-link :href="route('customer.reservations.index')" :active="request()->routeIs('customer.reservations.*')">
+                            {{ __('Reservations') }}
+                        </x-nav-link>
                     </div>
                 @endif
             </div>
@@ -118,6 +121,9 @@
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('customer.orders.index')" :active="request()->routeIs('customer.orders.*')">
                     {{ __('Orders') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('customer.reservations.index')" :active="request()->routeIs('customer.reservations.*')">
+                    {{ __('Reservations') }}
                 </x-responsive-nav-link>
             @endif
         </div>

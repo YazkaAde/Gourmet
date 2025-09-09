@@ -20,10 +20,8 @@ return new class extends Migration
             $table->text('comment')->nullable();
             $table->text('admin_reply')->nullable();
             $table->timestamp('replied_at')->nullable();
-            $table->softDeletes();
             $table->timestamps();
             
-            // Satu user hanya bisa memberikan satu review per menu per order
             $table->unique(['user_id', 'menu_id', 'order_id']);
         });
     }
