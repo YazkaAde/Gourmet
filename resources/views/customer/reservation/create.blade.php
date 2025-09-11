@@ -17,7 +17,8 @@
                                 <label for="reservation_date" class="block text-sm font-medium text-gray-700">Tanggal Reservasi</label>
                                 <input type="date" name="reservation_date" id="reservation_date" 
                                     class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                                    min="{{ date('Y-m-d') }}" required>
+                                    min="{{ date('Y-m-d') }}" 
+                                    value="{{ old('reservation_date') }}" required>
                                 @error('reservation_date')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
@@ -27,7 +28,7 @@
                                 <label for="reservation_time" class="block text-sm font-medium text-gray-700">Waktu Reservasi</label>
                                 <input type="time" name="reservation_time" id="reservation_time" 
                                     class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                                    required>
+                                    value="{{ old('reservation_time') }}" required>
                                 @error('reservation_time')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
@@ -37,7 +38,8 @@
                                 <label for="guest_count" class="block text-sm font-medium text-gray-700">Jumlah Tamu</label>
                                 <input type="number" name="guest_count" id="guest_count" 
                                     class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                                    min="1" max="100" required>
+                                    min="1" max="100" 
+                                    value="{{ old('guest_count') }}" required>
                                 @error('guest_count')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
@@ -51,7 +53,8 @@
                                     @foreach($tables as $table)
                                         <option value="{{ $table->table_number }}" 
                                             data-capacity="{{ $table->table_capacity }}"
-                                            data-price="{{ $table->table_capacity * 10000 }}">
+                                            data-price="{{ $table->table_capacity * 10000 }}"
+                                            {{ old('table_number') == $table->table_number ? 'selected' : '' }}>
                                             Meja {{ $table->table_number }} (Kapasitas: {{ $table->table_capacity }} orang)
                                         </option>
                                     @endforeach
@@ -64,17 +67,52 @@
                             <div class="md:col-span-2">
                                 <label for="notes" class="block text-sm font-medium text-gray-700">Catatan (Opsional)</label>
                                 <textarea name="notes" id="notes" rows="3"
-                                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"></textarea>
+                                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500">{{ old('notes') }}</textarea>
                                 @error('notes')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
                             </div>
 
-                            
-
+                            <!-- Menu items section -->
                             <div class="md:col-span-2">
                                 <h3 class="text-lg font-medium text-gray-900 mb-4">Tambah Menu (Opsional)</h3>
                                 <div id="menu-items-container">
+                                    @php
+                                        $oldMenuItems = old('menu_items', []);
+                                    @endphp
+                                    @foreach($oldMenuItems as $index => $menuItem)
+                                        <div class="menu-item border rounded-lg p-4 mb-4">
+                                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700">Pilih Menu</label>
+                                                    <select name="menu_items[{{ $index }}][menu_id]" 
+                                                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 menu-select">
+                                                        <option value="">Pilih Menu</option>
+                                                        @foreach($menus as $menu)
+                                                            <option value="{{ $menu->id }}" data-price="{{ $menu->price }}"
+                                                                {{ $menuItem['menu_id'] == $menu->id ? 'selected' : '' }}>
+                                                                {{ $menu->name }} - Rp {{ number_format($menu->price, 0) }}
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700">Jumlah</label>
+                                                    <input type="number" name="menu_items[{{ $index }}][quantity]" 
+                                                        value="{{ $menuItem['quantity'] }}" min="1" 
+                                                        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 quantity-input">
+                                                </div>
+                                                <div class="flex items-end">
+                                                    <button type="button" class="remove-menu-item px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                                                        Hapus
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="mt-2">
+                                                <p class="text-sm text-gray-600">Subtotal: <span class="menu-subtotal">Rp 0</span></p>
+                                            </div>
+                                        </div>
+                                    @endforeach
                                 </div>
                                 
                                 <div class="mt-4">
@@ -151,7 +189,42 @@
             const menuItemsContainer = document.getElementById('menu-items-container');
             const addMenuItemButton = document.getElementById('add-menu-item');
             const menuItemTemplate = document.getElementById('menu-item-template');
-            let menuItemCount = 0;
+            const reservationDateInput = document.getElementById('reservation_date');
+            const reservationTimeInput = document.getElementById('reservation_time');
+            const tableSelect = document.getElementById('table_number');
+            let menuItemCount = {{ count(old('menu_items', [])) }};
+
+                async function checkTableAvailability() {
+            const date = reservationDateInput.value;
+            const time = reservationTimeInput.value;
+            
+            if (!date || !time) return;
+            
+            try {
+                const response = await fetch(`/api/available-tables?date=${date}&time=${time}`);
+                const availableTables = await response.json();
+                
+                Array.from(tableSelect.options).forEach(option => {
+                    if (option.value) {
+                        const isAvailable = availableTables.some(table => table.table_number == option.value);
+                        option.disabled = !isAvailable;
+                        if (!isAvailable && option.selected) {
+                            option.selected = false;
+                            tableSelect.value = '';
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error checking table availability:', error);
+            }
+        }
+        
+        reservationDateInput.addEventListener('change', checkTableAvailability);
+        reservationTimeInput.addEventListener('change', checkTableAvailability);
+        
+        if (reservationDateInput.value && reservationTimeInput.value) {
+            checkTableAvailability();
+        }
         
             addMenuItemButton.addEventListener('click', function() {
                 const templateContent = menuItemTemplate.innerHTML;
@@ -201,6 +274,21 @@
                 const dp = total * 0.1;
                 document.getElementById('down-payment').textContent = 'Rp ' + dp.toLocaleString();
             }
+
+            calculateTotal();
+            
+            document.querySelectorAll('.menu-item').forEach(item => {
+                const select = item.querySelector('.menu-select');
+                const quantityInput = item.querySelector('.quantity-input');
+                const subtotalElement = item.querySelector('.menu-subtotal');
+                
+                if (select.value && quantityInput.value) {
+                    const price = parseFloat(select.options[select.selectedIndex].getAttribute('data-price'));
+                    const quantity = parseInt(quantityInput.value);
+                    const subtotal = price * quantity;
+                    subtotalElement.textContent = 'Rp ' + subtotal.toLocaleString();
+                }
+            });
         });
-        </script>
+    </script>
 </x-app-layout>

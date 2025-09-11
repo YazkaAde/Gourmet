@@ -64,7 +64,22 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <a href="{{ route('cashier.reservations.show', $reservation) }}" 
-                                           class="text-indigo-600 hover:text-indigo-900">View</a>
+                                           class="text-indigo-600 hover:text-indigo-900 mr-2">View</a>
+                                        
+                                           @if($reservation->status == 'pending')
+                                           <span class="text-yellow-600">Menunggu DP</span>
+                                           @elseif($reservation->status == 'confirmed')
+                                           <form action="{{ route('cashier.reservations.update-status', $reservation) }}" method="POST" class="inline">
+                                               @csrf
+                                               @method('PATCH')
+                                               <input type="hidden" name="status" value="cancelled">
+                                               <button type="submit" 
+                                                       class="text-red-600 hover:text-red-800"
+                                                       onclick="return confirm('Are you sure you want to cancel this reservation?')">
+                                                   Cancel
+                                               </button>
+                                           </form>
+                                           @endif
                                     </td>
                                 </tr>
                                 @endforeach

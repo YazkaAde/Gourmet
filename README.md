@@ -49,4 +49,3 @@ Sebuah aplikasi yang dapat digunakan untuk pemesanan makanan dan minuman pada se
 # memindah data dari carts ke order item
 # menyelesaikan fitur reservasi
 
-

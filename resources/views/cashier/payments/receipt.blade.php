@@ -71,25 +71,36 @@
         <div class="border-b border-gray-300 pb-4 mb-4">
             <h3 class="font-semibold mb-2">CUSTOMER INFORMATION</h3>
             <div class="text-sm">
-                <p><span class="font-medium">Name:</span> {{ $payment->order->user->name }}</p>
-                <p><span class="font-medium">Table:</span> {{ $payment->order->table_number }}</p>
+                @if($payment->order_id && $payment->order && $payment->order->user)
+                    <p><span class="font-medium">Name:</span> {{ $payment->order->user->name }}</p>
+                    <p><span class="font-medium">Table:</span> {{ $payment->order->table_number ?? 'N/A' }}</p>
+                @elseif($payment->reservation_id && $payment->reservation && $payment->reservation->user)
+                    <p><span class="font-medium">Name:</span> {{ $payment->reservation->user->name }}</p>
+                    <p><span class="font-medium">Table:</span> {{ $payment->reservation->table_number ?? 'N/A' }}</p>
+                @else
+                    <p><span class="font-medium">Name:</span> Customer information not available</p>
+                @endif
             </div>
         </div>
 
-        <!-- Order Items -->
+        {{-- Order Items --}}
+        @if($payment->order_id && $payment->order && $payment->order->carts)
         <div class="border-b border-gray-300 pb-4 mb-4">
             <h3 class="font-semibold mb-3">ORDER ITEMS</h3>
             <div class="space-y-2 text-sm">
                 @foreach($payment->order->carts as $cartItem)
+                @if($cartItem->menu)
                 <div class="flex justify-between">
                     <div>
                         <span class="font-medium">{{ $cartItem->quantity }}x</span> {{ $cartItem->menu->name }}
                     </div>
                     <div>Rp {{ number_format($cartItem->menu->price * $cartItem->quantity, 0) }}</div>
                 </div>
+                @endif
                 @endforeach
             </div>
         </div>
+        @endif
 
         <!-- Payment Summary -->
         <div class="border-b border-gray-300 pb-4 mb-4">

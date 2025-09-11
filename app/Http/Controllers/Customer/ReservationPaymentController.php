@@ -40,64 +40,71 @@ class ReservationPaymentController extends Controller
 
     public function store(Request $request, Reservation $reservation)
     {
-    if ($reservation->user_id !== Auth::id() || $reservation->status !== 'pending') {
-        abort(403);
-    }
+        if ($reservation->user_id !== Auth::id() || $reservation->status !== 'pending') {
+            abort(403);
+        }
 
-    $table = $reservation->table;
-    $reservationFee = $table->table_capacity * 10000;
-    
-    if ($table->table_capacity >= 8) {
-        $reservationFee = $reservationFee * 0.8;
-    }
+        $table = $reservation->table;
+        $reservationFee = $table->table_capacity * 10000;
+        
+        if ($table->table_capacity >= 8) {
+            $reservationFee = $reservationFee * 0.8;
+        }
 
-    $menuTotal = $reservation->preOrderItems->sum(function($item) {
-        return $item->price * $item->quantity;
-    });
-    
-    $totalAmount = $reservationFee + $menuTotal;
+        $menuTotal = $reservation->preOrderItems->sum(function($item) {
+            return $item->price * $item->quantity;
+        });
+        
+        $totalAmount = $reservationFee + $menuTotal;
 
-    if ($reservation->hasPaidPayment()) {
+        if ($reservation->hasPaidPayment()) {
+            return redirect()->route('customer.reservations.show', $reservation)
+                ->with('info', 'Payment already processed');
+        }
+        
+        $minimumDownPayment = $totalAmount * 0.1;
+        $totalPaid = $reservation->payments()->where('status', 'paid')->sum('amount');
+        $remainingBalance = $totalAmount - $totalPaid;
+        $minimumRequired = max($minimumDownPayment - $totalPaid, 0);
+
+        $request->validate([
+            'payment_method' => 'required|in:cash,credit_card,debit_card,qris,bank_transfer',
+            'amount_paid' => [
+                'required',
+                'numeric',
+                'min:' . $minimumRequired,
+                'max:' . $remainingBalance
+            ],
+        ]);
+
+        if ($request->amount_paid < $minimumRequired) {
+            return back()->withErrors(['amount_paid' => 'Minimum down payment is 10% of total amount (Rp ' . number_format($minimumRequired, 0) . ')'])->withInput();
+        }
+
+        $paymentData = [
+            'reservation_id' => $reservation->id,
+            'user_id' => Auth::id(),
+            'amount' => $request->amount_paid,
+            'payment_method' => $request->payment_method,
+            'status' => $request->payment_method === 'cash' ? 'paid' : 'pending',
+            'notes' => 'Down payment for reservation #' . $reservation->id,
+        ];
+
+        if ($request->payment_method === 'cash') {
+            $paymentData['amount_paid'] = $request->amount_paid;
+            $paymentData['change'] = 0;
+        }
+
+        $payment = Payment::create($paymentData);
+
+        if ($payment->status === 'paid') {
+            $reservation->update(['status' => 'confirmed']);
+            
+            $reservation->update(['total_amount' => $totalAmount]);
+        }
+
         return redirect()->route('customer.reservations.show', $reservation)
-            ->with('info', 'Payment already processed');
-    }
-    
-    $minimumDownPayment = $totalAmount * 0.1;
-    $totalPaid = $reservation->payments()->where('status', 'paid')->sum('amount');
-    $remainingBalance = $totalAmount - $totalPaid;
-
-    $request->validate([
-        'payment_method' => 'required|in:cash,credit_card,debit_card,qris,bank_transfer',
-        'amount_paid' => [
-            'required',
-            'numeric',
-            'min:' . max($minimumDownPayment, 1),
-            'max:' . $remainingBalance
-        ],
-    ]);
-
-    $paymentData = [
-        'reservation_id' => $reservation->id,
-        'user_id' => Auth::id(),
-        'amount' => $request->amount_paid,
-        'payment_method' => $request->payment_method,
-        'status' => $request->payment_method === 'cash' ? 'paid' : 'pending',
-        'notes' => 'Down payment for reservation #' . $reservation->id,
-    ];
-
-    if ($request->payment_method === 'cash') {
-        $paymentData['amount_paid'] = $request->amount_paid;
-        $paymentData['change'] = $request->amount_paid - $request->amount_paid; 
-    }
-
-    $payment = Payment::create($paymentData);
-
-    if ($payment->status === 'paid') {
-        $reservation->update(['status' => 'confirmed']);
-    }
-
-    return redirect()->route('customer.reservations.show', $reservation)
-        ->with('success', 'Payment processed successfully. Reservation ' . 
-              ($payment->status === 'paid' ? 'confirmed' : 'pending payment confirmation'));
+            ->with('success', 'Payment processed successfully. Reservation ' . 
+                  ($payment->status === 'paid' ? 'confirmed' : 'pending payment confirmation'));
     }
 }

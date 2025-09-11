@@ -19,8 +19,16 @@
                                     <p class="font-medium">#{{ $payment->id }}</p>
                                 </div>
                                 <div>
-                                    <p class="text-sm text-gray-600">Order ID</p>
-                                    <p class="font-medium">#{{ $payment->order_id }}</p>
+                                    <p class="text-sm text-gray-600">Type</p>
+                                    <p class="font-medium">
+                                        @if($payment->order_id)
+                                            Order Payment
+                                        @elseif($payment->reservation_id)
+                                            Reservation Payment
+                                        @else
+                                            N/A
+                                        @endif
+                                    </p>
                                 </div>
                                 <div>
                                     <p class="text-sm text-gray-600">Status</p>
@@ -60,10 +68,23 @@
                         <div>
                             <h3 class="text-lg font-semibold mb-4">Customer Information</h3>
                             <div class="space-y-3">
+                                @if($payment->order_id && $payment->order)
+                                @if($payment->order_id && $payment->order && $payment->order->user)
                                 <div>
                                     <p class="text-sm text-gray-600">Customer Name</p>
                                     <p class="font-medium">{{ $payment->order->user->name }}</p>
                                 </div>
+                                @elseif($payment->reservation_id && $payment->reservation && $payment->reservation->user)
+                                <div>
+                                    <p class="text-sm text-gray-600">Customer Name</p>
+                                    <p class="font-medium">{{ $payment->reservation->user->name }}</p>
+                                </div>
+                                @else
+                                <div>
+                                    <p class="text-sm text-gray-600">Customer Name</p>
+                                    <p class="font-medium text-red-600">Customer data not available</p>
+                                </div>
+                                @endif
                                 <div>
                                     <p class="text-sm text-gray-600">Table Number</p>
                                     <p class="font-medium">{{ $payment->order->table_number }}</p>
@@ -83,11 +104,40 @@
                                         {{ ucfirst($payment->order->status) }}
                                     </span>
                                 </div>
+                                @elseif($payment->reservation_id && $payment->reservation)
+                                <div>
+                                    <p class="text-sm text-gray-600">Customer Name</p>
+                                    <p class="font-medium">{{ $payment->reservation->user->name }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-600">Table Number</p>
+                                    <p class="font-medium">{{ $payment->reservation->table_number }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-600">Reservation Date</p>
+                                    <p class="font-medium">{{ $payment->reservation->reservation_date->format('M d, Y') }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-600">Reservation Time</p>
+                                    <p class="font-medium">{{ $payment->reservation->reservation_time }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-600">Reservation Status</p>
+                                    <span class="px-3 py-1 rounded-full text-sm font-medium 
+                                        @if($payment->reservation->status == 'confirmed') bg-green-100 text-green-800
+                                        @elseif($payment->reservation->status == 'pending') bg-yellow-100 text-yellow-800
+                                        @elseif($payment->reservation->status == 'cancelled') bg-red-100 text-red-800
+                                        @endif">
+                                        {{ ucfirst($payment->reservation->status) }}
+                                    </span>
+                                </div>
+                                @endif
                             </div>
                         </div>
                     </div>
 
-                    <!-- Order Items -->
+                    <!-- Order Items (jika order payment) -->
+                    @if($payment->order_id && $payment->order)
                     <div class="mb-8">
                         <h3 class="text-lg font-semibold mb-4">Order Items</h3>
                         <div class="border rounded-lg overflow-hidden">
@@ -131,6 +181,58 @@
                             </table>
                         </div>
                     </div>
+                    @endif
+
+                    <!-- Pre-Order Items (jika reservation payment) -->
+                    @if($payment->reservation_id && $payment->reservation && $payment->reservation->preOrderItems->count() > 0)
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold mb-4">Pre-Order Items</h3>
+                        <div class="border rounded-lg overflow-hidden">
+                            <table class="min-w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    @foreach($payment->reservation->preOrderItems as $preOrderItem)
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                @if($preOrderItem->menu->image_url)
+                                                <img src="{{ asset('storage/' . $preOrderItem->menu->image_url) }}" 
+                                                     alt="{{ $preOrderItem->menu->name }}"
+                                                     class="w-10 h-10 object-cover rounded mr-3"
+                                                     onerror="this.style.display='none'">
+                                                @endif
+                                                <div>
+                                                    <p class="font-medium text-gray-900">{{ $preOrderItem->menu->name }}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">{{ $preOrderItem->quantity }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">Rp {{ number_format($preOrderItem->price, 0) }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">Rp {{ number_format($preOrderItem->price * $preOrderItem->quantity, 0) }}</td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                                <tfoot class="bg-gray-50">
+                                    <tr>
+                                        <td colspan="3" class="px-6 py-4 text-right font-medium">Menu Total:</td>
+                                        <td class="px-6 py-4 font-bold">
+                                            Rp {{ number_format($payment->reservation->preOrderItems->sum(function($item) {
+                                                return $item->price * $item->quantity;
+                                            }), 0) }}
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                    @endif
 
                     <!-- Action Buttons -->
                     <div class="flex justify-between items-center pt-6 border-t">
@@ -175,7 +277,7 @@
 
     <!-- Cash Payment Modal -->
     @if($payment->status == 'pending' && $payment->payment_method == 'cash')
-    <div id="cashModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div id="cashModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
         <div class="bg-white rounded-lg w-96 p-6">
             <h3 class="text-lg font-medium mb-4">Process Cash Payment</h3>
             <form action="{{ route('cashier.payments.process-cash', $payment) }}" method="POST">
@@ -208,7 +310,6 @@
             document.getElementById('cashModal').classList.add('hidden');
         }
 
-        // Close modal when clicking outside
         document.getElementById('cashModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeCashModal();

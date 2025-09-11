@@ -36,7 +36,7 @@
                                                 {{ ucfirst($reservation->status) }}
                                             </span>
                                             <p class="text-lg font-bold text-gray-900 mt-2">
-                                                Fee: Rp {{ number_format($reservation->reservation_fee, 0) }}
+                                                Total Fee: Rp {{ number_format($reservation->total_amount, 0) }}
                                             </p>
                                         </div>
                                     </div>
@@ -78,14 +78,33 @@
                                         @endif
                                         @if($reservation->payments()->exists())
                                         <div class="mt-2">
+                                            @php
+                                                $totalPaid = $reservation->payments()->where('status', 'paid')->sum('amount');
+                                                $minimumPayment = $reservation->total_amount * 0.1;
+                                                $paymentStatus = '';
+                                                
+                                                if ($totalPaid >= $reservation->total_amount) {
+                                                    $paymentStatus = 'Fully Paid';
+                                                } elseif ($totalPaid >= $minimumPayment) {
+                                                    $paymentStatus = 'Down Payment Paid';
+                                                } else {
+                                                    $paymentStatus = 'Partial Payment';
+                                                }
+                                            @endphp
+                                            
                                             <p class="text-sm text-gray-600">
-                                                Paid: Rp {{ number_format($reservation->total_paid, 0) }} / 
-                                                Rp {{ number_format($reservation->reservation_fee, 0) }}
+                                                {{ $paymentStatus }}: Rp {{ number_format($totalPaid, 0) }} / 
+                                                Rp {{ number_format($reservation->total_amount, 0) }}
                                             </p>
                                             <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
                                                 <div class="bg-primary-600 h-2 rounded-full" 
-                                                    style="width: {{ ($reservation->total_paid / $reservation->reservation_fee) * 100 }}%"></div>
+                                                    style="width: {{ ($totalPaid / $reservation->total_amount) * 100 }}%"></div>
                                             </div>
+                                            @if($paymentStatus === 'Down Payment Paid')
+                                            <p class="text-xs text-green-600 mt-1">✓ Minimum 10% down payment received</p>
+                                            @elseif($paymentStatus === 'Fully Paid')
+                                            <p class="text-xs text-green-600 mt-1">✓ Fully paid</p>
+                                            @endif
                                         </div>
                                         @endif
                                     </div>

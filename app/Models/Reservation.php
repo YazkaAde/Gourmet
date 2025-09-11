@@ -45,12 +45,20 @@ class Reservation extends Model
 
     public function getReservationFeeAttribute()
     {
-        $table = NumberTable::where('table_number', $this->table_number)->first();
-        $capacity = $table ? $table->table_capacity : 0;
+        $tableCapacity = 0;
         
-        $basePrice = $capacity * 10000;
+        if (is_object($this->table) && property_exists($this->table, 'table_capacity')) {
+            $tableCapacity = $this->table->table_capacity;
+        } else {
+            $table = NumberTable::where('table_number', $this->table_number)->first();
+            if ($table) {
+                $tableCapacity = $table->table_capacity;
+            }
+        }
         
-        if ($capacity >= 8) {
+        $basePrice = $tableCapacity * 10000;
+        
+        if ($tableCapacity >= 8) {
             $basePrice = $basePrice * 0.8;
         }
         
@@ -100,18 +108,37 @@ class Reservation extends Model
 
     public function getTotalAmountAttribute()
     {
-        $table = $this->table;
-        $reservationFee = $table->table_capacity * 10000;
+        $tableCapacity = 0;
         
-        if ($table->table_capacity >= 8) {
+        if (is_object($this->table) && property_exists($this->table, 'table_capacity')) {
+            $tableCapacity = $this->table->table_capacity;
+        } else {
+            $table = NumberTable::where('table_number', $this->table_number)->first();
+            if ($table) {
+                $tableCapacity = $table->table_capacity;
+            }
+        }
+        
+        $reservationFee = $tableCapacity * 10000;
+        
+        if ($tableCapacity >= 8) {
             $reservationFee = $reservationFee * 0.8;
         }
         
-        $menuTotal = $this->preOrderItems->sum(function($item) {
-            return $item->price * $item->quantity;
-        });
+        $menuTotal = 0;
+        
+        if ($this->relationLoaded('preOrderItems')) {
+            $menuTotal = $this->preOrderItems->sum(function($item) {
+                return $item->price * $item->quantity;
+            });
+        } else {
+            $menuTotal = PreOrderItem::where('reservation_id', $this->id)
+                ->get()
+                ->sum(function($item) {
+                    return $item->price * $item->quantity;
+                });
+        }
         
         return $reservationFee + $menuTotal;
-    }
-
-}
+    }}
+    

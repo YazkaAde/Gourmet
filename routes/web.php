@@ -1,8 +1,10 @@
 <?php
 
 use App\Models\NumberTable;
+use App\Models\Reservation;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\CheckBlacklist;
+use Illuminate\Http\Request;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\CrewController;
 use App\Http\Controllers\Admin\MenuController;
@@ -61,7 +63,7 @@ Route::middleware(['auth', 'role:admin', CheckBlacklist::class])->prefix('admin'
         Route::delete('/{id}', [BlacklistController::class, 'destroy'])->name('blacklist.destroy');
     });
 
-    // Admin Review Routes - DIPINDAHKAN ke dalam grup admin yang sudah ada
+    // Admin Review Routes
     Route::prefix('reviews')->name('reviews.')->group(function() {
         Route::get('/', [ReviewController::class, 'index'])->name('index');
         Route::get('/{review}', [ReviewController::class, 'show'])->name('show');
@@ -139,15 +141,24 @@ Route::middleware(['auth', 'role:customer', CheckBlacklist::class])->group(funct
             ->whereNumber('review');
     });
 
-    Route::get('/available-tables', [TableController::class, 'availableTables'])->name('api.available-tables');
-
-    Route::get('/api/available-tables', function() {
-        $tables = NumberTable::whereDoesntHave('orders', function($query) {
-            $query->whereIn('status', ['pending', 'processing']);
-        })->get();
+    Route::get('/api/available-tables', function(Request $request) {
+        $date = $request->query('date');
+        $time = $request->query('time');
         
-        return response()->json($tables);
+        if (!$date || !$time) {
+            return response()->json(NumberTable::all());
+        }
+        
+        $occupiedTables = Reservation::where('reservation_date', $date)
+            ->where('reservation_time', $time)
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->pluck('table_number');
+        
+        $availableTables = NumberTable::whereNotIn('table_number', $occupiedTables)->get();
+        
+        return response()->json($availableTables);
     })->name('api.available-tables');
+
     // Reservasi
     Route::prefix('reservations')->name('customer.reservations.')->group(function() {
         Route::get('/', [ReservationController::class, 'index'])->name('index');
@@ -158,7 +169,7 @@ Route::middleware(['auth', 'role:customer', CheckBlacklist::class])->group(funct
         Route::put('/{reservation}', [ReservationController::class, 'update'])->name('update');
         Route::delete('/{reservation}/cancel', [ReservationController::class, 'cancel'])->name('cancel');
         
-        // Menu routes untuk reservasi - PERBAIKAN DI SINI
+        // Menu routes untuk reservasi
         Route::prefix('{reservation}/menu')->name('menu.')->group(function() {
             Route::get('/add', [ReservationController::class, 'addMenu'])->name('add');
             Route::post('/store', [ReservationController::class, 'storeMenu'])->name('store');

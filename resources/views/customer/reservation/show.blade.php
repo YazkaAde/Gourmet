@@ -68,12 +68,6 @@
                             <p class="text-sm text-gray-600">Created At</p>
                             <p class="font-medium">{{ $reservation->created_at->format('M d, Y H:i') }}</p>
                         </div>
-                        @if($reservation->status == 'pending')
-                        <a href="{{ route('customer.reservations.menu.add', $reservation) }}" 
-                        class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium">
-                            Add Menu Items
-                        </a>
-                        @endif
                     </div>
 
                     @if($reservation->notes)
@@ -228,14 +222,12 @@
             </div>
             @endif
 
-
-            <!-- Reservation Proof Section -->
-            @if($reservation->payments()->where('status', 'paid')->exists())
+            @if($reservation->status !== 'cancelled' && $reservation->payments()->where('status', 'paid')->exists())
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mt-6">
                 <div class="p-6 bg-white border-b border-gray-200">
                     <h3 class="text-lg font-semibold mb-4">Reservation Proof</h3>
                     
-                    <div class="bg-gray-50 p-6 rounded-lg">
+                    <div id="printable-confirmation" class="bg-gray-50 p-6 rounded-lg">
                         <div class="text-center mb-6">
                             <h4 class="text-xl font-bold text-gray-900">RESERVATION CONFIRMATION</h4>
                             <p class="text-gray-600">Reservation #{{ $reservation->id }}</p>
@@ -278,30 +270,53 @@
                             <h5 class="font-semibold mb-2">Payment Summary:</h5>
                             <div class="space-y-2">
                                 <div class="flex justify-between">
-                                    <span>Reservation Fee:</span>
-                                    <span>Rp {{ number_format($reservation->reservation_fee, 0) }}</span>
+                                    <span>Total Amount:</span>
+                                    <span>Rp {{ number_format($reservation->total_amount, 0) }}</span>
                                 </div>
                                 @if($reservation->payments()->exists())
+                                    @php
+                                        $totalPaid = $reservation->payments()->where('status', 'paid')->sum('amount');
+                                        $transferFee = 0;
+                                        foreach($reservation->payments as $payment) {
+                                            if($payment->payment_method !== 'cash' && $payment->status === 'paid') {
+                                                $transferFee += $payment->amount * 0.02;
+                                            }
+                                        }
+                                        $netAmount = $reservation->total_amount - $transferFee;
+                                    @endphp
                                     @foreach($reservation->payments as $payment)
                                     <div class="flex justify-between">
                                         <span>Paid ({{ ucfirst($payment->payment_method) }}):</span>
                                         <span>Rp {{ number_format($payment->amount, 0) }}</span>
                                     </div>
                                     @endforeach
+                                    @if($transferFee > 0)
+                                    <div class="flex justify-between text-red-600">
+                                        <span>Transfer Fee (2%):</span>
+                                        <span>- Rp {{ number_format($transferFee, 0) }}</span>
+                                    </div>
+                                    @endif
                                 @endif
                                 <div class="flex justify-between font-bold border-t pt-2">
+                                    <span>Net Amount Paid:</span>
+                                    <span>Rp {{ number_format($netAmount ?? $reservation->total_amount, 0) }}</span>
+                                </div>
+                                <div class="flex justify-between font-bold">
                                     <span>Remaining Balance:</span>
-                                    <span>Rp {{ number_format($reservation->reservation_fee - $reservation->payments->sum('amount'), 0) }}</span>
+                                    <span>Rp {{ number_format($reservation->total_amount - $totalPaid, 0) }}</span>
                                 </div>
                             </div>
                         </div>
                         
                         <div class="mt-6 text-center">
                             <p class="text-sm text-gray-500">Generated on: {{ now()->format('M d, Y H:i') }}</p>
-                            <button onclick="window.print()" class="mt-4 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700">
-                                Print Confirmation
-                            </button>
                         </div>
+                    </div>
+
+                    <div class="mt-6 text-center">
+                        <button onclick="printConfirmation()" class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700">
+                            Print Confirmation
+                        </button>
                     </div>
                 </div>
             </div>
@@ -317,7 +332,6 @@
                                 Back to Reservations
                             </a>
                             
-                            <!-- Tombol untuk kembali ke menu -->
                             <a href="{{ route('customer.menu.index') }}" 
                                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-center">
                                 Back to Menu
@@ -325,6 +339,18 @@
                         </div>
 
                         <div class="flex flex-wrap gap-3 justify-center md:justify-end">
+                            @php
+                                $totalPaid = $reservation->payments()->where('status', 'paid')->sum('amount');
+                                $isFullyPaid = $totalPaid >= $reservation->total_amount;
+                            @endphp
+                            
+                            @if(!$isFullyPaid && $reservation->status !== 'cancelled')
+                                <a href="{{ route('customer.reservations.payment.create', $reservation) }}" 
+                                   class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium">
+                                    Pay {{ $totalPaid > 0 ? 'Remaining' : 'Now' }}
+                                </a>
+                            @endif
+                            
                             @if($reservation->status == 'pending')
                             <a href="{{ route('customer.reservations.edit', $reservation) }}" 
                                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium">
@@ -416,4 +442,16 @@
             @endif
         </div>
     </div>
+
+    <script>
+    function printConfirmation() {
+        var printContents = document.getElementById('printable-confirmation').innerHTML;
+        var originalContents = document.body.innerHTML;
+
+        document.body.innerHTML = printContents;
+        window.print();
+        document.body.innerHTML = originalContents;
+        window.location.reload();
+    }
+    </script>
 </x-app-layout>

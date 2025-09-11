@@ -105,21 +105,29 @@
                     </div>
 
                     <!-- Status Update Form -->
+                    @if($reservation->status == 'pending')
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                            <p class="text-yellow-800">Reservasi ini menunggu pembayaran DP dari customer.</p>
+                        </div>
+                    </div>
+                    @else
                     <div class="mt-6 pt-6 border-t border-gray-200">
                         <h4 class="text-md font-semibold mb-3">Update Reservation Status</h4>
                         <form action="{{ route('cashier.reservations.update-status', $reservation) }}" method="POST">
                             @csrf
+                            @method('PATCH')
                             <div class="flex flex-col md:flex-row gap-4 items-start md:items-center">
                                 <select name="status" class="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500">
-                                    <option value="confirmed" {{ $reservation->status == 'confirmed' ? 'selected' : '' }}>Confirmed</option>
-                                    <option value="cancelled" {{ $reservation->status == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                                    <option value="cancelled">Cancelled</option>
                                 </select>
-                                <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors">
-                                    Update Status
+                                <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors">
+                                    Cancel Reservation
                                 </button>
                             </div>
                         </form>
                     </div>
+                    @endif
                 </div>
             </div>
 

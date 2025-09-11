@@ -38,7 +38,7 @@
                                         Payment ID
                                     </th>
                                     <th class="px-6 py-3 border-b-2 border-gray-300 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                        Order ID
+                                        Type
                                     </th>
                                     <th class="px-6 py-3 border-b-2 border-gray-300 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                         Customer
@@ -67,10 +67,22 @@
                                             #{{ $payment->id }}
                                         </td>
                                         <td class="px-6 py-4 border-b border-gray-300">
-                                            #{{ $payment->order_id }}
+                                            @if($payment->order_id)
+                                                Order #{{ $payment->order_id }}
+                                            @elseif($payment->reservation_id)
+                                                Reservation #{{ $payment->reservation_id }}
+                                            @else
+                                                N/A
+                                            @endif
                                         </td>
                                         <td class="px-6 py-4 border-b border-gray-300">
-                                            {{ $payment->order->user->name ?? 'N/A' }}
+                                            @if($payment->order_id && $payment->order && $payment->order->user)
+                                                {{ $payment->order->user->name }}
+                                            @elseif($payment->reservation_id && $payment->reservation && $payment->reservation->user)
+                                                {{ $payment->reservation->user->name }}
+                                            @else
+                                                Customer Not Found
+                                            @endif
                                         </td>
                                         <td class="px-6 py-4 border-b border-gray-300">
                                             {{ ucfirst(str_replace('_', ' ', $payment->payment_method)) }}
