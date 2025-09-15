@@ -42,22 +42,22 @@
                     <div class="mt-6">
                         <h4 class="text-md font-semibold mb-3">Order Items:</h4>
                         <div class="space-y-3">
-                            @foreach($order->carts as $cartItem)
+                            @foreach($order->orderItems as $orderItem)
                                 <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                                     <div class="flex items-center">
-                                        @if($cartItem->menu->image_url)
-                                            <img src="{{ asset('storage/' . $cartItem->menu->image_url) }}" 
-                                                alt="{{ $cartItem->menu->name }}"
+                                        @if($orderItem->menu->image_url)
+                                            <img src="{{ asset('storage/' . $orderItem->menu->image_url) }}" 
+                                                alt="{{ $orderItem->menu->name }}"
                                                 class="w-12 h-12 object-cover rounded mr-3"
                                                 onerror="this.style.display='none'">
                                         @endif
                                         <div>
-                                            <p class="font-medium text-gray-900">{{ $cartItem->menu->name }}</p>
-                                            <p class="text-sm text-gray-600">Qty: {{ $cartItem->quantity }} × Rp {{ number_format($cartItem->menu->price, 0) }}</p>
+                                            <p class="font-medium text-gray-900">{{ $orderItem->menu->name }}</p>
+                                            <p class="text-sm text-gray-600">Qty: {{ $orderItem->quantity }} × Rp {{ number_format($orderItem->menu->price, 0) }}</p>
                                         </div>
                                     </div>
                                     <p class="font-medium text-gray-900">
-                                        Rp {{ number_format($cartItem->menu->price * $cartItem->quantity, 0) }}
+                                        Rp {{ number_format($orderItem->menu->price * $orderItem->quantity, 0) }}
                                     </p>
                                 </div>
                             @endforeach
@@ -86,7 +86,7 @@
                             <div class="grid grid-cols-2 gap-4">
                                 <label class="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
                                     <input type="radio" name="payment_method" value="cash" class="text-primary-600 focus:ring-primary-500" required>
-                                    <span class="ml-3 text-sm font-medium text-gray-700">Cash</span>
+                                    <span class="ml-3 text-sm font-medium text-gray-700">Cash (Processed by Cashier)</span>
                                 </label>
                                 
                                 <label class="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
@@ -109,27 +109,15 @@
                             @enderror
                         </div>
 
-                        <!-- Cash Payment Fields (akan ditampilkan jika cash dipilih) -->
-                        <div id="cashFields" class="mb-6 hidden">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label for="amount_paid" class="block text-sm font-medium text-gray-700 mb-2">
-                                        Amount Paid
-                                    </label>
-                                    <input type="number" name="amount_paid" id="amount_paid" 
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                        placeholder="Enter amount paid"
-                                        min="{{ $order->total_price }}">
-                                    @error('amount_paid')
-                                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                                    @enderror
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Change</label>
-                                    <div class="p-2 bg-gray-100 rounded-md">
-                                        <p class="text-gray-600" id="changeAmount">Rp 0</p>
-                                    </div>
-                                </div>
+                        <!-- Informasi untuk cash payment -->
+                        <div id="cashInfo" class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg hidden">
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 text-yellow-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V5z" clip-rule="evenodd"></path>
+                                </svg>
+                                <p class="text-yellow-700 text-sm">
+                                    For cash payments, please wait for the cashier to process your payment and provide the exact amount.
+                                </p>
                             </div>
                         </div>
 
@@ -149,33 +137,24 @@
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const paymentMethods = document.querySelectorAll('input[name="payment_method"]');
-            const cashFields = document.getElementById('cashFields');
-            const amountPaidInput = document.getElementById('amount_paid');
-            const changeAmount = document.getElementById('changeAmount');
-            const totalPrice = {{ $order->total_price }};
-
-            paymentMethods.forEach(method => {
-                method.addEventListener('change', function() {
-                    if (this.value === 'cash') {
-                        cashFields.classList.remove('hidden');
-                        amountPaidInput.setAttribute('required', 'required');
-                    } else {
-                        cashFields.classList.add('hidden');
-                        amountPaidInput.removeAttribute('required');
-                        amountPaidInput.value = '';
-                        changeAmount.textContent = 'Rp 0';
-                    }
-                });
-            });
-
-            amountPaidInput?.addEventListener('input', function() {
-                const amountPaid = parseFloat(this.value) || 0;
-                const change = amountPaid - totalPrice;
-                changeAmount.textContent = `Rp ${change >= 0 ? change.toLocaleString() : '0'}`;
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const paymentMethods = document.querySelectorAll('input[name="payment_method"]');
+        const cashFields = document.getElementById('cashFields');
+        const amountPaidInput = document.getElementById('amount_paid');
+        const changeAmount = document.getElementById('changeAmount');
+        const totalPrice = {{ $order->total_price }};
+    
+        paymentMethods.forEach(method => {
+            method.addEventListener('change', function() {
+                if (cashFields) {
+                    cashFields.classList.add('hidden');
+                }
+                if (amountPaidInput) {
+                    amountPaidInput.removeAttribute('required');
+                }
             });
         });
+    });
     </script>
 </x-app-layout>

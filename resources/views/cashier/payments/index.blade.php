@@ -104,42 +104,39 @@
                                         </td>
                                         <td class="px-6 py-4 border-b border-gray-300">
                                             <div class="flex gap-2">
-                                                <!-- Tombol View selalu tersedia -->
                                                 <a href="{{ route('cashier.payments.show', $payment) }}" 
-                                                   class="text-primary-600 hover:text-primary-800 text-sm">
+                                                class="text-primary-600 hover:text-primary-800 text-sm">
                                                     View
                                                 </a>
                                                 
                                                 @if($payment->status == 'pending')
-                                                    <!-- Tombol Confirm untuk payment pending -->
-                                                    <form action="{{ route('cashier.payments.confirm', $payment) }}" method="POST">
-                                                        @csrf
-                                                        <button type="submit" 
-                                                                class="text-green-600 hover:text-green-800 text-sm"
-                                                                onclick="return confirm('Confirm this payment?')">
-                                                            Confirm
-                                                        </button>
-                                                    </form>
-                                                    
                                                     @if($payment->payment_method == 'cash')
-                                                    <!-- Tombol Process Cash untuk payment cash yang pending -->
-                                                    <a href="{{ route('cashier.payments.show', $payment) }}" 
-                                                       class="text-blue-600 hover:text-blue-800 text-sm">
-                                                        Process Cash
-                                                    </a>
+                                                        <a href="{{ route('cashier.payments.show', $payment) }}" 
+                                                        class="text-blue-600 hover:text-blue-800 text-sm">
+                                                            Process Cash
+                                                        </a>
+                                                    @else
+                                                        <form action="{{ route('cashier.payments.confirm', $payment) }}" method="POST">
+                                                            @csrf
+                                                            <button type="submit" 
+                                                                    class="text-green-600 hover:text-green-800 text-sm"
+                                                                    onclick="return confirm('Confirm this payment?')">
+                                                                Confirm
+                                                            </button>
+                                                        </form>
                                                     @endif
                                                 @endif
                                                 
                                                 @if($payment->status == 'paid')
-                                                    <!-- Tombol Receipt untuk payment yang sudah paid -->
                                                     <a href="{{ route('cashier.payments.receipt', $payment) }}" 
-                                                       target="_blank"
-                                                       class="text-purple-600 hover:text-purple-800 text-sm">
+                                                    target="_blank"
+                                                    class="text-purple-600 hover:text-purple-800 text-sm">
                                                         Receipt
                                                     </a>
                                                 @endif
                                             </div>
                                         </td>
+
                                     </tr>
                                 @empty
                                     <tr>

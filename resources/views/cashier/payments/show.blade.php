@@ -151,24 +151,24 @@
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
-                                    @foreach($payment->order->carts as $cartItem)
+                                    @foreach($payment->order->orderItems as $orderItem)
                                     <tr>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="flex items-center">
-                                                @if($cartItem->menu->image_url)
-                                                <img src="{{ asset('storage/' . $cartItem->menu->image_url) }}" 
-                                                     alt="{{ $cartItem->menu->name }}"
-                                                     class="w-10 h-10 object-cover rounded mr-3"
-                                                     onerror="this.style.display='none'">
+                                                @if($orderItem->menu->image_url)
+                                                <img src="{{ asset('storage/' . $orderItem->menu->image_url) }}" 
+                                                    alt="{{ $orderItem->menu->name }}"
+                                                    class="w-10 h-10 object-cover rounded mr-3"
+                                                    onerror="this.style.display='none'">
                                                 @endif
                                                 <div>
-                                                    <p class="font-medium text-gray-900">{{ $cartItem->menu->name }}</p>
+                                                    <p class="font-medium text-gray-900">{{ $orderItem->menu->name }}</p>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">{{ $cartItem->quantity }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap">Rp {{ number_format($cartItem->menu->price, 0) }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap">Rp {{ number_format($cartItem->menu->price * $cartItem->quantity, 0) }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">{{ $orderItem->quantity }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">Rp {{ number_format($orderItem->price, 0) }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">Rp {{ number_format($orderItem->price * $orderItem->quantity, 0) }}</td>
                                     </tr>
                                     @endforeach
                                 </tbody>
@@ -237,34 +237,34 @@
                     <!-- Action Buttons -->
                     <div class="flex justify-between items-center pt-6 border-t">
                         <a href="{{ route('cashier.payments.index') }}" 
-                           class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition">
+                        class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition">
                             Back to Payments
                         </a>
 
                         <div class="flex gap-3">
                             @if($payment->status == 'pending')
-                                <form action="{{ route('cashier.payments.confirm', $payment) }}" method="POST">
-                                    @csrf
-                                    <button type="submit" 
-                                            class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
-                                            onclick="return confirm('Confirm this payment?')">
-                                        Confirm Payment
-                                    </button>
-                                </form>
-                                
                                 @if($payment->payment_method == 'cash')
-                                <button type="button" 
-                                        onclick="openCashModal()"
-                                        class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
-                                    Process Cash
-                                </button>
+                                    <button type="button" 
+                                            onclick="openCashModal()"
+                                            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+                                        Process Cash Payment
+                                    </button>
+                                @else
+                                    <form action="{{ route('cashier.payments.confirm', $payment) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" 
+                                                class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
+                                                onclick="return confirm('Confirm this payment?')">
+                                            Confirm Payment
+                                        </button>
+                                    </form>
                                 @endif
                             @endif
 
                             @if($payment->status == 'paid')
                                 <a href="{{ route('cashier.payments.receipt', $payment) }}" 
-                                   target="_blank"
-                                   class="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 transition">
+                                target="_blank"
+                                class="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 transition">
                                     Print Receipt
                                 </a>
                             @endif
@@ -275,9 +275,16 @@
         </div>
     </div>
 
-    <!-- Cash Payment Modal -->
-    @if($payment->status == 'pending' && $payment->payment_method == 'cash')
-    <div id="cashModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <!-- Cash Payment Modal -->
+        @if($payment->status == 'pending' && $payment->payment_method == 'cash')
+        <button onclick="openCashModal()" 
+                class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+            Process Cash Payment
+        </button>
+        @endif
+
+        @if($payment->status == 'pending' && $payment->payment_method == 'cash')
+        <div id="cashModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
         <div class="bg-white rounded-lg w-96 p-6">
             <h3 class="text-lg font-medium mb-4">Process Cash Payment</h3>
             <form action="{{ route('cashier.payments.process-cash', $payment) }}" method="POST">
@@ -285,36 +292,56 @@
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Amount Paid</label>
                     <input type="number" 
-                           name="amount_paid" 
-                           class="w-full p-2 border border-gray-300 rounded"
-                           placeholder="Enter amount paid"
-                           min="{{ $payment->amount }}"
-                           required
-                           step="500">
-                    <p class="text-sm text-gray-500 mt-1">Minimum: Rp {{ number_format($payment->amount, 0) }}</p>
+                        name="amount_paid" 
+                        class="w-full p-2 border border-gray-300 rounded"
+                        placeholder="Enter amount paid"
+                        min="{{ $payment->amount }}"
+                        required
+                        step="500"
+                        id="cashAmountInput">
+                    <p class="text-sm text-gray-500 mt-1">Amount due: Rp {{ number_format($payment->amount, 0) }}</p>
                 </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Change</label>
+                    <div class="p-3 bg-gray-100 rounded">
+                        <p class="font-medium" id="changeAmount">Rp 0</p>
+                    </div>
+                </div>
+                
                 <div class="flex justify-end gap-2">
                     <button type="button" onclick="closeCashModal()" class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Process</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Process Payment</button>
                 </div>
             </form>
         </div>
-    </div>
+        </div>
 
-    <script>
+        <script>
         function openCashModal() {
-            document.getElementById('cashModal').classList.remove('hidden');
+        document.getElementById('cashModal').classList.remove('hidden');
+        document.getElementById('cashAmountInput').focus();
         }
 
         function closeCashModal() {
-            document.getElementById('cashModal').classList.add('hidden');
+        document.getElementById('cashModal').classList.add('hidden');
         }
 
-        document.getElementById('cashModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeCashModal();
-            }
+        // Hitung change secara real-time
+        document.getElementById('cashAmountInput').addEventListener('input', function() {
+        const amountPaid = parseFloat(this.value) || 0;
+        const amountDue = {{ $payment->amount }};
+        const change = amountPaid - amountDue;
+
+        document.getElementById('changeAmount').textContent = 
+            `Rp ${change >= 0 ? change.toLocaleString() : '0'}`;
         });
-    </script>
-    @endif
+
+        document.getElementById('cashModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeCashModal();
+        }
+        });
+        </script>
+        @endif
 </x-app-layout>

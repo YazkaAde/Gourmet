@@ -85,6 +85,7 @@ Route::middleware(['auth', 'role:cashier', CheckBlacklist::class])->prefix('cash
         Route::patch('/{order}/status', [\App\Http\Controllers\Cashier\OrderController::class, 'updateStatus'])->name('update-status');
     });
 
+    // Payment Routes
     Route::prefix('payments')->name('payments.')->group(function() {
         Route::get('/', [PaymentController::class, 'index'])->name('index');
         Route::get('/{payment}', [PaymentController::class, 'show'])->name('show');

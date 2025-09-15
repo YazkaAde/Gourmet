@@ -13,15 +13,15 @@ class OrderController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $orders = Order::with(['carts.menu', 'payment'])
+        $orders = Order::with(['orderItems.menu', 'payment'])
             ->where('user_id', $user->id)
             ->orderBy('created_at', 'desc')
             ->paginate(10);
         
         $menuIds = collect();
         foreach ($orders as $order) {
-            foreach ($order->carts as $cart) {
-                $menuIds->push($cart->menu_id);
+            foreach ($order->orderItems as $orderItem) {
+                $menuIds->push($orderItem->menu_id);
             }
         }
         
@@ -31,15 +31,17 @@ class OrderController extends Controller
             ->keyBy('menu_id');
         
         return view('customer.orders.index', compact('orders', 'userReviews'));
-    }    public function show(Order $order)
+    }
+
+    public function show(Order $order)
     {
         if ($order->user_id !== Auth::id()) {
             abort(403);
         }
         
         $order->load([
-            'carts.menu', 
-            'carts.menu.reviews' => function($query) {
+            'orderItems.menu', 
+            'orderItems.menu.reviews' => function($query) {
                 $query->where('user_id', auth()->id());
             }, 
             'reservation', 
@@ -49,14 +51,12 @@ class OrderController extends Controller
         
         return view('customer.orders.show', compact('order'));
     }
-
     public function cancel(Order $order)
     {
         if ($order->user_id !== Auth::id()) {
             abort(403);
         }
 
-        // Hanya bisa membatalkan order yang masih pending
         if ($order->status !== 'pending') {
             return redirect()->back()->with('error', 'Cannot cancel order that is already being processed.');
         }

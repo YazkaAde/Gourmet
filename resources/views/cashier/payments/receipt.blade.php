@@ -84,17 +84,17 @@
         </div>
 
         {{-- Order Items --}}
-        @if($payment->order_id && $payment->order && $payment->order->carts)
+        @if($payment->order_id && $payment->order && $payment->order->orderItems)
         <div class="border-b border-gray-300 pb-4 mb-4">
             <h3 class="font-semibold mb-3">ORDER ITEMS</h3>
             <div class="space-y-2 text-sm">
-                @foreach($payment->order->carts as $cartItem)
-                @if($cartItem->menu)
+                @foreach($payment->order->orderItems as $orderItem)
+                @if($orderItem->menu)
                 <div class="flex justify-between">
                     <div>
-                        <span class="font-medium">{{ $cartItem->quantity }}x</span> {{ $cartItem->menu->name }}
+                        <span class="font-medium">{{ $orderItem->quantity }}x</span> {{ $orderItem->menu->name }}
                     </div>
-                    <div>Rp {{ number_format($cartItem->menu->price * $cartItem->quantity, 0) }}</div>
+                    <div>Rp {{ number_format($orderItem->price * $orderItem->quantity, 0) }}</div>
                 </div>
                 @endif
                 @endforeach

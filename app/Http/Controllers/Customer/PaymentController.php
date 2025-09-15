@@ -12,20 +12,20 @@ use Illuminate\Support\Facades\Auth;
 class PaymentController extends Controller
 {
     public function create(Order $order)
-{
-    if ($order->user_id !== Auth::id() || $order->status !== 'completed') {
-        abort(403, 'Unauthorized or order not completed');
+    {
+        if ($order->user_id !== Auth::id() || $order->status !== 'completed') {
+            abort(403, 'Unauthorized or order not completed');
+        }
+
+        if ($order->payment) {
+            return redirect()->route('customer.orders.show', $order)
+                ->with('info', 'Payment already processed');
+        }
+
+        $order->load(['orderItems.menu', 'payment']);
+
+        return view('customer.payment', compact('order'));
     }
-
-    if ($order->payment) {
-        return redirect()->route('customer.orders.show', $order)
-            ->with('info', 'Payment already processed');
-    }
-
-    $order->load(['carts.menu', 'payment']);
-
-    return view('customer.payment', compact('order'));
-}
 
     public function store(Request $request, Order $order)
     {
@@ -35,7 +35,6 @@ class PaymentController extends Controller
 
         $request->validate([
             'payment_method' => 'required|in:cash,credit_card,debit_card,qris,bank_transfer',
-            'amount_paid' => $request->payment_method === 'cash' ? 'required|numeric|min:' . $order->total_price : 'nullable',
         ]);
 
         $paymentData = [
@@ -43,21 +42,20 @@ class PaymentController extends Controller
             'user_id' => Auth::id(),
             'amount' => $order->total_price,
             'payment_method' => $request->payment_method,
-            'status' => $request->payment_method === 'cash' ? 'paid' : 'pending',
+            'status' => $request->payment_method === 'cash' ? 'pending' : 'paid',
         ];
-
-        if ($request->payment_method === 'cash') {
-            $paymentData['amount_paid'] = $request->amount_paid;
-            $paymentData['change'] = $request->amount_paid - $order->total_price;
-        }
 
         $payment = Payment::create($paymentData);
 
         if ($payment->status === 'paid') {
             event(new PaymentStatusUpdated($payment, 'pending', 'paid'));
+            $order->update(['status' => 'completed']);
         }
 
         return redirect()->route('customer.orders.show', $order)
-            ->with('success', 'Payment processed successfully');
+            ->with('success', 'Payment processed successfully. ' . 
+                ($request->payment_method === 'cash' ? 
+                'Please wait for cashier to process your cash payment.' : 
+                'Your payment has been confirmed.'));
     }
 }

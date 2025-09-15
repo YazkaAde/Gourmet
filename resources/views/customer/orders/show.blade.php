@@ -70,16 +70,22 @@
                                 <p class="text-sm text-gray-600">Payment Method</p>
                                 <p class="font-medium">{{ ucfirst(str_replace('_', ' ', $order->payment->payment_method)) }}</p>
                             </div>
-                            @if($order->payment->payment_method == 'cash')
-                            <div>
-                                <p class="text-sm text-gray-600">Amount Paid</p>
-                                <p class="font-medium">Rp {{ number_format($order->payment->amount_paid, 0) }}</p>
-                            </div>
-                            <div>
-                                <p class="text-sm text-gray-600">Change</p>
-                                <p class="font-medium">Rp {{ number_format($order->payment->change, 0) }}</p>
-                            </div>
+                        @if($order->payment && $order->payment->payment_method == 'cash')
+                            @if($order->payment->status == 'paid')
+                                <div>
+                                    <p class="text-sm text-gray-600">Amount Paid</p>
+                                    <p class="font-medium">Rp {{ number_format($order->payment->amount_paid, 0) }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-600">Change</p>
+                                    <p class="font-medium">Rp {{ number_format($order->payment->change, 0) }}</p>
+                                </div>
+                            @else
+                                <div>
+                                    <p class="text-sm text-yellow-600">Waiting for cashier to process cash payment</p>
+                                </div>
                             @endif
+                        @endif
                         </div>
                     </div>
                     @endif
@@ -101,31 +107,31 @@
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
-                                @foreach($order->carts as $cartItem)
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="flex items-center">
-                                            @if($cartItem->menu->image_url)
-                                                <div class="flex-shrink-0 h-10 w-10">
-                                                    <img class="h-10 w-10 rounded-full object-cover" src="{{ asset('storage/'.$cartItem->menu->image_url) }}" alt="{{ $cartItem->menu->name }}">
-                                                </div>
-                                            @endif
-                                            <div class="ml-4">
-                                                <div class="text-sm font-medium text-gray-900">{{ $cartItem->menu->name }}</div>
+                            @foreach($order->orderItems as $orderItem)
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        @if($orderItem->menu->image_url)
+                                            <div class="flex-shrink-0 h-10 w-10">
+                                                <img class="h-10 w-10 rounded-full object-cover" src="{{ asset('storage/'.$orderItem->menu->image_url) }}" alt="{{ $orderItem->menu->name }}">
                                             </div>
+                                        @endif
+                                        <div class="ml-4">
+                                            <div class="text-sm font-medium text-gray-900">{{ $orderItem->menu->name }}</div>
                                         </div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ $cartItem->quantity }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        Rp {{ number_format($cartItem->menu->price, 0) }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        Rp {{ number_format($cartItem->quantity * $cartItem->menu->price, 0) }}
-                                    </td>
-                                </tr>
-                                @endforeach
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ $orderItem->quantity }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    Rp {{ number_format($orderItem->price, 0) }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    Rp {{ number_format($orderItem->total_price, 0) }}
+                                </td>
+                            </tr>
+                            @endforeach
                             </tbody>
                             <tfoot>
                                 <tr>
@@ -140,26 +146,26 @@
                     <div class="mt-6 pt-6 border-t border-gray-200">
                         <h4 class="text-lg font-semibold mb-4">Reviews</h4>
                         <div class="space-y-4">
-                            @foreach($order->carts as $cartItem)
+                            @foreach($order->orderItems as $orderItem)
                                 @php
-                                    $userReview = $cartItem->menu->reviews->firstWhere('user_id', auth()->id());
+                                    $userReview = $orderItem->menu->reviews->firstWhere('user_id', auth()->id());
                                 @endphp
                                 
                                 <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                     <div class="flex items-center">
-                                        @if($cartItem->menu->image_url)
-                                            <img src="{{ asset('storage/' . $cartItem->menu->image_url) }}" 
-                                                alt="{{ $cartItem->menu->name }}"
+                                        @if($orderItem->menu->image_url)
+                                            <img src="{{ asset('storage/' . $orderItem->menu->image_url) }}" 
+                                                alt="{{ $orderItem->menu->name }}"
                                                 class="w-10 h-10 object-cover rounded mr-3"
                                                 onerror="this.style.display='none'">
                                         @endif
-                                        <span class="font-medium">{{ $cartItem->menu->name }}</span>
+                                        <span class="font-medium">{{ $orderItem->menu->name }}</span>
                                     </div>
                                     
                                     <div>
                                         @if($order->payment && $order->payment->status == 'paid')
                                             @if(!$userReview)
-                                                <a href="{{ route('customer.reviews.create', ['order' => $order, 'menu' => $cartItem->menu]) }}" 
+                                                <a href="{{ route('customer.reviews.create', ['order' => $order, 'menu' => $orderItem->menu]) }}" 
                                                 class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm">
                                                     ✩ Write Review
                                                 </a>

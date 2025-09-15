@@ -12,11 +12,11 @@ class PaymentController extends Controller
 {
     public function index()
 {
-    $status = request('status', 'pending');
+    $status = request('status');
     
     $payments = Payment::with([
             'order.user', 
-            'order.carts.menu', 
+            'order.orderItems.menu', 
             'reservation.user',
             'reservation.table'
         ])
@@ -33,7 +33,7 @@ public function show(Payment $payment)
 {
     $payment->load([
         'order' => function($query) {
-            $query->with(['user', 'carts.menu', 'table']);
+            $query->with(['user', 'orderItems.menu', 'table']);
         },
         'reservation' => function($query) {
             $query->with(['user', 'table', 'preOrderItems.menu']);
@@ -51,7 +51,6 @@ public function show(Payment $payment)
         $payment->update(['status' => 'paid']);
 
         if ($payment->order_id && $payment->order) {
-            // Untuk order payment
             $payment->order->update(['status' => 'completed']);
         } else if ($payment->reservation_id && $payment->reservation) {
             if ($payment->reservation->status === 'pending') {
@@ -72,7 +71,7 @@ public function show(Payment $payment)
     {
         $payment->load([
             'order' => function($query) {
-                $query->with(['user', 'carts.menu', 'table']);
+                $query->with(['user', 'orderItems.menu', 'table']);
             },
             'reservation' => function($query) {
                 $query->with(['user', 'table', 'preOrderItems.menu']);
@@ -90,19 +89,28 @@ public function show(Payment $payment)
 
     public function processCashPayment(Request $request, Payment $payment)
     {
+        if ($payment->payment_method !== 'cash') {
+            return redirect()->back()
+                ->with('error', 'This payment method is not cash.');
+        }
+
         $request->validate([
             'amount_paid' => 'required|numeric|min:' . $payment->amount
         ]);
 
-        $payment->load(['reservation']);
-        
         $oldStatus = $payment->status;
+        
+        $change = $request->amount_paid - $payment->amount;
         
         $payment->update([
             'amount_paid' => $request->amount_paid,
-            'change' => $request->amount_paid - $payment->amount,
+            'change' => $change,
             'status' => 'paid'
         ]);
+
+        if ($payment->order_id && $payment->order) {
+            $payment->order->update(['status' => 'completed']);
+        }
 
         if ($payment->reservation_id && $payment->reservation) {
             if ($payment->reservation->status === 'pending') {
@@ -113,6 +121,7 @@ public function show(Payment $payment)
         event(new PaymentStatusUpdated($payment, $oldStatus, 'paid'));
 
         return redirect()->route('cashier.payments.show', $payment)
-            ->with('success', 'Cash payment processed successfully');
+            ->with('success', 'Cash payment processed successfully. Change: Rp ' . 
+                number_format($change, 0));
     }
 }

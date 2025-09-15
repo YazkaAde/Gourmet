@@ -13,11 +13,11 @@ class OrderController extends Controller
     {
         $status = request('status');
         
-        $orders = Order::with(['user', 'carts.menu'])
+        $orders = Order::with(['user', 'orderItems.menu'])
             ->when($status, function($query, $status) {
                 return $query->where('status', $status);
             })
-            ->orderBy('created_at', 'desc')
+            ->orderBy('created_at', direction: 'desc')
             ->paginate(10);
             
         return view('cashier.orders.index', compact('orders'));
@@ -25,7 +25,7 @@ class OrderController extends Controller
 
     public function show(Order $order)
     {
-        $order->load(['user', 'carts.menu', 'table']);
+        $order->load(['user', 'orderItems.menu', 'table']);
         
         return view('cashier.orders.show', compact('order'));
     }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Customer;
 use App\Models\Cart;
 use App\Models\Menu;
 use App\Models\Order;
+use App\Models\OrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
@@ -121,7 +122,7 @@ public function store(Request $request)
         return back()->with('success', 'Item removed from cart');
     }
 
-    public function checkout(Request $request)
+public function checkout(Request $request)
 {
     $request->validate([
         'table_number' => 'required|exists:number_tables,table_number'
@@ -164,9 +165,19 @@ public function store(Request $request)
             'status' => 'pending',
         ]);
         
+        foreach ($cartItems as $cartItem) {
+            OrderItem::create([
+                'order_id' => $order->id,
+                'menu_id' => $cartItem->menu_id,
+                'quantity' => $cartItem->quantity,
+                'price' => $cartItem->menu->price,
+                'total_price' => $cartItem->menu->price * $cartItem->quantity
+            ]);
+        }
+        
         Cart::where('user_id', $user->id)
             ->whereNull('order_id')
-            ->update(['order_id' => $order->id]);
+            ->delete();
         
         return response()->json([
             'success' => true,

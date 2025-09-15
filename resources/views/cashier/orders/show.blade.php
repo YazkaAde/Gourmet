@@ -36,26 +36,26 @@
                     <div class="mb-6">
                         <h3 class="text-lg font-semibold mb-4">Order Items</h3>
                         <div class="space-y-3">
-                            @foreach($order->carts as $cartItem)
-                                <div class="flex justify-between items-center p-3 border rounded-lg">
-                                    <div class="flex items-center">
-                                        @if($cartItem->menu->image_url)
-                                            <img src="{{ asset('storage/' . $cartItem->menu->image_url) }}" 
-                                                 alt="{{ $cartItem->menu->name }}"
-                                                 class="w-12 h-12 object-cover rounded mr-3"
-                                                 onerror="this.style.display='none'">
-                                        @endif
-                                        <div>
-                                            <p class="font-medium text-gray-800">{{ $cartItem->menu->name }}</p>
-                                            <p class="text-sm text-gray-600">Quantity: {{ $cartItem->quantity }}</p>
-                                            <p class="text-sm text-gray-600">Price: Rp {{ number_format($cartItem->menu->price, 0) }}</p>
-                                        </div>
-                                    </div>
-                                    <p class="font-medium text-gray-800">
-                                        Rp {{ number_format($cartItem->menu->price * $cartItem->quantity, 0) }}
-                                    </p>
+                        @foreach($order->orderItems as $orderItem)
+                        <div class="flex justify-between items-center p-3 border rounded-lg">
+                            <div class="flex items-center">
+                                @if($orderItem->menu->image_url)
+                                    <img src="{{ asset('storage/' . $orderItem->menu->image_url) }}" 
+                                        alt="{{ $orderItem->menu->name }}"
+                                        class="w-12 h-12 object-cover rounded mr-3"
+                                        onerror="this.style.display='none'">
+                                @endif
+                                <div>
+                                    <p class="font-medium text-gray-800">{{ $orderItem->menu->name }}</p>
+                                    <p class="text-sm text-gray-600">Quantity: {{ $orderItem->quantity }}</p>
+                                    <p class="text-sm text-gray-600">Price: Rp {{ number_format($orderItem->price, 0) }}</p>
                                 </div>
-                            @endforeach
+                            </div>
+                            <p class="font-medium text-gray-800">
+                                Rp {{ number_format($orderItem->total_price, 0) }}
+                            </p>
+                        </div>
+                        @endforeach
                         </div>
                     </div>
 

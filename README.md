@@ -48,4 +48,10 @@ Sebuah aplikasi yang dapat digunakan untuk pemesanan makanan dan minuman pada se
 # Cek status ketersediaan meja di tabel nomor meja
 # memindah data dari carts ke order item
 # menyelesaikan fitur reservasi
-
+# menyelesaikan harga di halaman create reservasi
+1. data dari tabel pre order item dioper ke tabel orders, lalu menu diolah di tabel order.
+2. lalu user bisa membayar pesanan dari pre order di tabel order, namun biaya nya yaitu biaya total dikurangi biaya dp.
+3. sehingga user hanya perlu melakukan pembayaran sisa dari biaya total, jika user melakukan pembayaran secara penuh maka urutan nomor 2 tidak berlaku
+4. untuk user yang melakukan reservasi, status otomatis di pending dan payment tetap bisa dilaksanakan apapun statusnya (kecuali cancel) karena reservasi harus melakukan pembayaran terlebih dahulu
+5. status reservasi akan otomatis complete jika status dari order sudah complete
+ini khusus untuk user yang melakukan pemesanan lewat reservasi
