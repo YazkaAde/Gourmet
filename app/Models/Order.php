@@ -6,8 +6,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
-use App\Models\OrderItem;
 
 class Order extends Model
 {
@@ -40,19 +38,19 @@ class Order extends Model
         return $this->belongsTo(NumberTable::class, 'table_number', 'table_number');
     }
 
-    public function carts(): HasMany
+    public function orderItems(): HasMany
     {
-        return $this->hasMany(Cart::class);
+        return $this->hasMany(OrderItem::class);
     }
 
     public function payment()
     {
-        return $this->hasOne(Payment::class);
+        return $this->hasOne(Payment::class, 'order_id');
     }
 
-    public function orderItems(): HasMany
+    public function reviews()
     {
-        return $this->hasMany(OrderItem::class);
+        return $this->hasMany(Review::class);
     }
 
     public function scopeActive($query)
@@ -67,15 +65,20 @@ class Order extends Model
 
     public function scopeHasPayment($query)
     {
-        return $query->whereHas('payment');
+        return $query->whereHas('payments');
     }
 
     public function scopeNeedsPayment($query)
     {
         return $query->where('status', 'completed')
-                    ->whereDoesntHave('payment')
-                    ->orWhereHas('payment', function($q) {
+                    ->whereDoesntHave('payments')
+                    ->orWhereHas('payments', function($q) {
                         $q->where('status', 'pending');
                     });
+    }
+
+    public function isFromReservation()
+    {
+        return !is_null($this->reservation_id);
     }
 }

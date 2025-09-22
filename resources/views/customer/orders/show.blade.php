@@ -147,48 +147,52 @@
                         <h4 class="text-lg font-semibold mb-4">Reviews</h4>
                         <div class="space-y-4">
                             @foreach($order->orderItems as $orderItem)
-                                @php
-                                    $userReview = $orderItem->menu->reviews->firstWhere('user_id', auth()->id());
-                                @endphp
-                                
-                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                    <div class="flex items-center">
-                                        @if($orderItem->menu->image_url)
-                                            <img src="{{ asset('storage/' . $orderItem->menu->image_url) }}" 
-                                                alt="{{ $orderItem->menu->name }}"
-                                                class="w-10 h-10 object-cover rounded mr-3"
-                                                onerror="this.style.display='none'">
-                                        @endif
-                                        <span class="font-medium">{{ $orderItem->menu->name }}</span>
-                                    </div>
-                                    
-                                    <div>
-                                        @if($order->payment && $order->payment->status == 'paid')
-                                            @if(!$userReview)
-                                                <a href="{{ route('customer.reviews.create', ['order' => $order, 'menu' => $orderItem->menu]) }}" 
-                                                class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm">
-                                                    ✩ Write Review
-                                                </a>
-                                            @else
-                                                <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
-                                                    ✓ Reviewed
-                                                </span>
-                                                <form action="{{ route('customer.reviews.destroy', $userReview) }}" method="POST" class="inline ml-2">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" 
-                                                            class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm hover:bg-red-200"
-                                                            onclick="return confirm('Are you sure you want to delete your review?')">
-                                                        Delete
-                                                    </button>
-                                                </form>
-                                            @endif
-                                        @else
-                                            <span class="text-sm text-gray-500">Complete payment to review</span>
-                                        @endif
-                                    </div>
+                            @php
+                                $userReview = $orderItem->menu->reviews
+                                    ->where('user_id', auth()->id())
+                                    ->where('order_id', $order->id)
+                                    ->where('menu_id', $orderItem->menu_id)
+                                    ->first();
+                            @endphp
+                            
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center">
+                                    @if($orderItem->menu->image_url)
+                                        <img src="{{ asset('storage/' . $orderItem->menu->image_url) }}" 
+                                            alt="{{ $orderItem->menu->name }}"
+                                            class="w-10 h-10 object-cover rounded mr-3"
+                                            onerror="this.style.display='none'">
+                                    @endif
+                                    <span class="font-medium">{{ $orderItem->menu->name }}</span>
                                 </div>
-                            @endforeach
+                                
+                                <div>
+                                    @if($order->payment && $order->payment->status == 'paid')
+                                        @if(!$userReview)
+                                            <a href="{{ route('customer.reviews.create', ['order' => $order, 'menu' => $orderItem->menu]) }}" 
+                                            class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm">
+                                                ✩ Write Review
+                                            </a>
+                                        @else
+                                            <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                                                ✓ Reviewed ({{ $userReview->rating }}★)
+                                            </span>
+                                            <form action="{{ route('customer.reviews.destroy', $userReview) }}" method="POST" class="inline ml-2">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" 
+                                                        class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm hover:bg-red-200"
+                                                        onclick="return confirm('Are you sure you want to delete your review?')">
+                                                    Delete
+                                                </button>
+                                            </form>
+                                        @endif
+                                    @else
+                                        <span class="text-sm text-gray-500">Complete payment to review</span>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
                         </div>
                     </div>
                     @endif
@@ -199,7 +203,7 @@
                             Process Payment
                         </a>
                     </div>
-                    @endif
+                @endif
 
                     <div class="mt-6 pt-6 border-t border-gray-200">
                         <a href="{{ route('customer.orders.index') }}" 

@@ -55,16 +55,16 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <p class="text-sm text-gray-600">Table Capacity</p>
-                                <p class="font-medium">{{ $reservation->table->table_capacity }} people</p>
+                                <p class="font-medium">{{ $reservation->table_capacity }} people</p>
                             </div>
                             <div>
-                                <p class="text-sm text-gray-600">Reservation Fee</p>
+                                <p class="text-sm text-gray-600">Base Price</p>
                                 <p class="font-medium">Rp {{ number_format($reservation->reservation_fee, 0) }}</p>
                             </div>
-                            @if($reservation->preOrderItems->count() > 0)
+                            @if($reservation->orderItems->count() > 0)
                             <div>
                                 <p class="text-sm text-gray-600">Menu Total</p>
-                                <p class="font-medium">Rp {{ number_format($reservation->preOrderItems->sum(function($item) { return $item->price * $item->quantity; }), 0) }}</p>
+                                <p class="font-medium">Rp {{ number_format($reservation->menu_total, 0) }}</p>
                             </div>
                             <div>
                                 <p class="text-sm text-gray-600">Total Amount</p>
@@ -72,12 +72,16 @@
                             </div>
                             @endif
                             <div>
-                                <p class="text-sm text-gray-600">Minimum Down Payment (10%)</p>
-                                <p class="font-medium">Rp {{ number_format($minimumDownPayment, 0) }}</p>
+                                <p class="text-sm text-gray-600">Total Paid</p>
+                                <p class="font-medium">Rp {{ number_format($totalPaid, 0) }}</p>
                             </div>
                             <div>
                                 <p class="text-sm text-gray-600">Remaining Balance</p>
-                                <p class="font-medium">Rp {{ number_format($totalAmount - $minimumDownPayment, 0) }}</p>
+                                <p class="font-medium">Rp {{ number_format($remainingBalance, 0) }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Minimum Down Payment (10%)</p>
+                                <p class="font-medium">Rp {{ number_format($minimumDownPayment, 0) }}</p>
                             </div>
                         </div>
                     </div>
@@ -129,17 +133,18 @@
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                                 placeholder="Enter amount to pay"
                                 min="{{ $minimumDownPayment }}"
+                                max="{{ $remainingBalance }}"
                                 required>
                             @error('amount_paid')
                                 <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                             @enderror
                             <p class="text-sm text-gray-500 mt-1">
-                                Minimum down payment is 10% of reservation fee. You can pay more if you want.
+                                Minimum down payment is 10% of total amount. You can pay more if you want.
                             </p>
                         </div>
 
                         <div class="flex justify-end space-x-3">
-                            <a href="{{ route('customer.reservations.index', $reservation) }}" 
+                            <a href="{{ route('customer.reservations.show', $reservation) }}" 
                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
                                 Back to Reservation
                             </a>

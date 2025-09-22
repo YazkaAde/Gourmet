@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Reservation;
 use App\Models\NumberTable;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,73 +21,65 @@ class ReservationController extends Controller
     }
 
     public function store(Request $request)
-{
-    $validated = $request->validate([
-        'reservation_date' => 'required|date|after:today',
-        'reservation_time' => [
-            'required',
-            'date_format:H:i',
-            function ($attribute, $value, $fail) {
-                $time = strtotime($value);
-                $start = strtotime('09:00');
-                $end = strtotime('21:00');
-                
-                if ($time < $start || $time > $end) {
-                    $fail('Waktu reservasi hanya tersedia dari jam 09:00 sampai 21:00');
-                }
-            },
-        ],
-        'guest_count' => 'required|integer|min:1|max:100',
-        'table_number' => 'required|exists:number_tables,table_number',
-        'notes' => 'nullable|string|max:500',
-        'menu_items' => 'nullable|array',
-        'menu_items.*.menu_id' => 'required_with:menu_items|exists:menus,id',
-        'menu_items.*.quantity' => 'required_with:menu_items|integer|min:1',
-    ]);
-
-    $isTableAvailable = !Reservation::where('table_number', $validated['table_number'])
-        ->where('reservation_date', $validated['reservation_date'])
-        ->where('reservation_time', $validated['reservation_time'])
-        ->whereIn('status', ['pending', 'confirmed'])
-        ->exists();
-
-    if (!$isTableAvailable) {
-        return back()->withErrors(['table_number' => 'Meja tidak tersedia pada tanggal dan waktu yang dipilih.'])->withInput();
-    }
-
-    $reservation = Reservation::create([
-        'user_id' => Auth::id(),
-        'reservation_date' => $validated['reservation_date'],
-        'reservation_time' => $validated['reservation_time'],
-        'guest_count' => $validated['guest_count'],
-        'table_number' => $validated['table_number'],
-        'notes' => $validated['notes'] ?? null,
-        'status' => 'pending',
-    ]);
-
-    if (!empty($validated['menu_items'])) {
-        foreach ($validated['menu_items'] as $menuItem) {
-            $menu = \App\Models\Menu::find($menuItem['menu_id']);
-            $reservation->preOrderItems()->create([
-                'menu_id' => $menuItem['menu_id'],
-                'quantity' => $menuItem['quantity'],
-                'price' => $menu->price
-            ]);
-        }
-    }
-
-    return redirect()->route('customer.reservations.payment.create', $reservation)
-        ->with('success', 'Reservasi berhasil dibuat. Silakan lakukan pembayaran DP untuk konfirmasi.');
-}
-
-    public function index()
     {
-        $reservations = Reservation::where('user_id', Auth::id())
-            ->orderBy('reservation_date', 'desc')
-            ->orderBy('reservation_time', 'desc')
-            ->paginate(10);
+        $validated = $request->validate([
+            'reservation_date' => 'required|date|after:today',
+            'reservation_time' => [
+                'required',
+                'date_format:H:i',
+                function ($attribute, $value, $fail) {
+                    $time = strtotime($value);
+                    $start = strtotime('09:00');
+                    $end = strtotime('21:00');
+                    
+                    if ($time < $start || $time > $end) {
+                        $fail('Waktu reservasi hanya tersedia dari jam 09:00 sampai 21:00');
+                    }
+                },
+            ],
+            'guest_count' => 'required|integer|min:1|max:100',
+            'table_number' => 'required|exists:number_tables,table_number',
+            'notes' => 'nullable|string|max:500',
+            'menu_items' => 'nullable|array',
+            'menu_items.*.menu_id' => 'required_with:menu_items|exists:menus,id',
+            'menu_items.*.quantity' => 'required_with:menu_items|integer|min:1',
+        ]);
 
-        return view('customer.reservation.index', compact('reservations'));
+        $isTableAvailable = !Reservation::where('table_number', $validated['table_number'])
+            ->where('reservation_date', $validated['reservation_date'])
+            ->where('reservation_time', $validated['reservation_time'])
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->exists();
+
+        if (!$isTableAvailable) {
+            return back()->withErrors(['table_number' => 'Meja tidak tersedia pada tanggal dan waktu yang dipilih.'])->withInput();
+        }
+
+        $reservation = Reservation::create([
+            'user_id' => Auth::id(),
+            'reservation_date' => $validated['reservation_date'],
+            'reservation_time' => $validated['reservation_time'],
+            'guest_count' => $validated['guest_count'],
+            'table_number' => $validated['table_number'],
+            'notes' => $validated['notes'] ?? null,
+            'status' => 'pending',
+        ]);
+
+        if (!empty($validated['menu_items'])) {
+            foreach ($validated['menu_items'] as $menuItem) {
+                $menu = \App\Models\Menu::find($menuItem['menu_id']);
+                OrderItem::create([
+                    'reservation_id' => $reservation->id,
+                    'menu_id' => $menuItem['menu_id'],
+                    'quantity' => $menuItem['quantity'],
+                    'price' => $menu->price,
+                    'total_price' => $menu->price * $menuItem['quantity']
+                ]);
+            }
+        }
+
+        return redirect()->route('customer.reservations.show', $reservation)
+            ->with('success', 'Reservasi berhasil dibuat. Silakan lakukan pembayaran DP untuk konfirmasi.');
     }
 
     public function show(Reservation $reservation)
@@ -95,9 +88,29 @@ class ReservationController extends Controller
             abort(403);
         }
 
+        $reservation->load(['table', 'orderItems.menu', 'payments', 'user', 'orders.orderItems.menu']);
+
+        $reservation->checkAndUpdateStatus();
+        $reservation->refresh();
+
         return view('customer.reservation.show', compact('reservation'));
     }
 
+    public function index()
+    {
+        $reservations = Reservation::where('user_id', Auth::id())
+            ->with(['table', 'orderItems.menu', 'payments', 'orders'])
+            ->orderBy('reservation_date', 'desc')
+            ->orderBy('reservation_time', 'desc')
+            ->paginate(10);
+
+        foreach ($reservations as $reservation) {
+            $reservation->checkAndUpdateStatus();
+        }
+
+        return view('customer.reservation.index', compact('reservations'));
+    }
+    
     public function edit(Reservation $reservation)
     {
         if ($reservation->user_id !== Auth::id() || $reservation->status !== 'pending') {
@@ -113,22 +126,6 @@ class ReservationController extends Controller
         if ($reservation->user_id !== Auth::id() || $reservation->status !== 'pending') {
             abort(403);
         }
-
-        $validated = $request->validate([
-            'reservation_time' => [
-                'required',
-                'date_format:H:i',
-                function ($attribute, $value, $fail) {
-                    $time = strtotime($value);
-                    $start = strtotime('09:00');
-                    $end = strtotime('21:00');
-                    
-                    if ($time < $start || $time > $end) {
-                        $fail('Waktu reservasi hanya tersedia dari jam 09:00 sampai 21:00');
-                    }
-                },
-            ],
-        ]);
 
         $validated = $request->validate([
             'reservation_date' => 'required|date|after:today',
@@ -176,22 +173,15 @@ class ReservationController extends Controller
             'quantity' => 'required|integer|min:1',
         ]);
 
-        // Cek apakah menu sudah ada di pre-order
-        $existingItem = $reservation->preOrderItems()
-            ->where('menu_id', $validated['menu_id'])
-            ->first();
-
-        if ($existingItem) {
-            $existingItem->update([
-                'quantity' => $existingItem->quantity + $validated['quantity']
-            ]);
-        } else {
-            $reservation->preOrderItems()->create([
-                'menu_id' => $validated['menu_id'],
-                'quantity' => $validated['quantity'],
-                'price' => \App\Models\Menu::find($validated['menu_id'])->price
-            ]);
-        }
+        $menu = \App\Models\Menu::find($validated['menu_id']);
+        
+        OrderItem::create([
+            'reservation_id' => $reservation->id,
+            'menu_id' => $validated['menu_id'],
+            'quantity' => $validated['quantity'],
+            'price' => $menu->price,
+            'total_price' => $menu->price * $validated['quantity']
+        ]);
 
         return back()->with('success', 'Menu added to reservation');
     }
@@ -202,7 +192,7 @@ class ReservationController extends Controller
             abort(403);
         }
 
-        $reservation->preOrderItems()->delete();
+        OrderItem::where('reservation_id', $reservation->id)->delete();
 
         return back()->with('success', 'All menu items cleared');
     }
@@ -223,7 +213,6 @@ class ReservationController extends Controller
         }
 
         $reservation->update(['status' => 'cancelled']);
-
 
         return redirect()->route('customer.reservations.index')
             ->with('success', 'Reservasi berhasil dibatalkan.' . ($cancellationFee > 0 ? 

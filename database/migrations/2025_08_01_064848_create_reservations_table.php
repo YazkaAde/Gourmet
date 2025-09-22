@@ -19,7 +19,8 @@ return new class extends Migration
             $table->integer('guest_count');
             $table->string('table_number');
             $table->foreign('table_number')->references('table_number')->on('number_tables')->onDelete('restrict');
-            $table->enum('status', ['pending', 'confirmed', 'cancelled'])->default('pending');
+            $table->enum('status', ['pending', 'confirmed', 'completed', 'cancelled'])->default('pending');
+            $table->text('notes')->nullable();
             $table->timestamps();
         });
     }

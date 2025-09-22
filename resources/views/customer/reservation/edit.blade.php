@@ -127,7 +127,7 @@
                         </div>
                         <div>
                             <p class="text-sm text-gray-600">Meja</p>
-                            <p class="font-medium">Meja {{ $reservation->table_number }} ({{ $reservation->table->table_capacity }} orang)</p>
+                            <p class="font-medium">Meja {{ $reservation->table_number }} ({{ $reservation->table_capacity }} orang)</p>
                         </div>
                         @if($reservation->notes)
                         <div class="md:col-span-2">

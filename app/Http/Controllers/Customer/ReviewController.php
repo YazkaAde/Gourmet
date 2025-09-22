@@ -32,7 +32,7 @@ class ReviewController extends Controller
                 ->with('error', 'You have already reviewed this menu for this order.');
         }
     
-        $menuInOrder = $order->carts()->where('menu_id', $menu->id)->exists();
+        $menuInOrder = $order->orderItems()->where('menu_id', $menu->id)->exists();
         if (!$menuInOrder) {
             abort(403, 'Menu not found in this order');
         }
@@ -75,6 +75,7 @@ class ReviewController extends Controller
         return redirect()->route('customer.orders.show', $order)
             ->with('success', 'Review submitted successfully!');
     }
+
     public function destroy(Review $review)
     {
         if ($review->user_id !== Auth::id()) {

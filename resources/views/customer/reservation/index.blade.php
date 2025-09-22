@@ -23,10 +23,23 @@
                                     <div class="flex justify-between items-start mb-4">
                                         <div>
                                             <h3 class="font-bold text-lg text-gray-900">Reservation #{{ $reservation->id }}</h3>
-                                            <p class="text-gray-600">Table: {{ $reservation->table_number }} ({{ $reservation->table->table_capacity }} people)</p>
+                                            <p class="text-gray-600">Table: {{ $reservation->table_number }} ({{ $reservation->table_capacity }} people)</p>
                                             <p class="text-gray-600">Guests: {{ $reservation->guest_count }}</p>
                                             <p class="text-gray-600">Date: {{ $reservation->reservation_date->format('M d, Y') }} at {{ $reservation->reservation_time }}</p>
                                         </div>
+                                        @if($reservation->orderItems->count() > 0)
+                                        <div class="mt-2">
+                                            <p class="text-sm text-gray-600">Menu Items:</p>
+                                            <div class="space-y-1">
+                                                @foreach($reservation->orderItems as $item)
+                                                <div class="flex justify-between text-xs">
+                                                    <span>{{ $item->menu->name }} (x{{ $item->quantity }})</span>
+                                                    <span>Rp {{ number_format($item->total_price, 0) }}</span>
+                                                </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                        @endif
                                         <div class="text-right">
                                             <span class="px-3 py-1 rounded-full text-sm font-medium 
                                                 @if($reservation->status == 'confirmed') bg-green-100 text-green-800

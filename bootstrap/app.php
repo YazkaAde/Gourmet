@@ -21,6 +21,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => RoleMiddleware::class,
             'blacklist' => CheckBlacklist::class,
         ]);
+        $middleware->web(append: [
+            \App\Http\Middleware\CheckReservationStatus::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

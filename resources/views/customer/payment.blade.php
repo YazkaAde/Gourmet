@@ -84,9 +84,13 @@
                         <div class="mb-6">
                             <label class="block text-sm font-medium text-gray-700 mb-2">Select Payment Method</label>
                             <div class="grid grid-cols-2 gap-4">
-                                <label class="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                                <!-- Cash Method dengan informasi khusus -->
+                                <label class="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 relative">
                                     <input type="radio" name="payment_method" value="cash" class="text-primary-600 focus:ring-primary-500" required>
-                                    <span class="ml-3 text-sm font-medium text-gray-700">Cash (Processed by Cashier)</span>
+                                    <span class="ml-3 text-sm font-medium text-gray-700">Cash (Process at Counter)</span>
+                                    <span class="absolute top-2 right-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">
+                                        Cashier Only
+                                    </span>
                                 </label>
                                 
                                 <label class="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
@@ -109,16 +113,39 @@
                             @enderror
                         </div>
 
-                        <!-- Informasi untuk cash payment -->
                         <div id="cashInfo" class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg hidden">
                             <div class="flex items-center">
                                 <svg class="w-5 h-5 text-yellow-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V5z" clip-rule="evenodd"></path>
                                 </svg>
                                 <p class="text-yellow-700 text-sm">
-                                    For cash payments, please wait for the cashier to process your payment and provide the exact amount.
+                                    For cash payments, please proceed to the cashier counter. The cashier will process your payment and provide receipt.
                                 </p>
                             </div>
+                        </div>
+
+                        <div id="nonCashInfo" class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg hidden">
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                </svg>
+                                <p class="text-blue-700 text-sm">
+                                    Online payments will be verified by our cashier. Please complete the transaction and our staff will confirm your payment.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Notes Field -->
+                        <div class="mb-6">
+                            <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">
+                                Payment Notes (Optional)
+                            </label>
+                            <textarea name="notes" id="notes" rows="3" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                placeholder="Add any payment reference or notes..."></textarea>
+                            @error('notes')
+                                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                            @enderror
                         </div>
 
                         <div class="flex justify-end space-x-3">
@@ -138,23 +165,32 @@
     </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const paymentMethods = document.querySelectorAll('input[name="payment_method"]');
-        const cashFields = document.getElementById('cashFields');
-        const amountPaidInput = document.getElementById('amount_paid');
-        const changeAmount = document.getElementById('changeAmount');
-        const totalPrice = {{ $order->total_price }};
-    
-        paymentMethods.forEach(method => {
-            method.addEventListener('change', function() {
-                if (cashFields) {
-                    cashFields.classList.add('hidden');
-                }
-                if (amountPaidInput) {
-                    amountPaidInput.removeAttribute('required');
-                }
-            });
+document.addEventListener('DOMContentLoaded', function() {
+    const paymentMethods = document.querySelectorAll('input[name="payment_method"]');
+    const cashInfo = document.getElementById('cashInfo');
+    const nonCashInfo = document.getElementById('nonCashInfo');
+
+    paymentMethods.forEach(method => {
+        method.addEventListener('change', function() {
+            cashInfo.classList.add('hidden');
+            nonCashInfo.classList.add('hidden');
+
+            if (this.value === 'cash') {
+                cashInfo.classList.remove('hidden');
+            } else {
+                nonCashInfo.classList.remove('hidden');
+            }
         });
     });
-    </script>
+
+    const selectedMethod = document.querySelector('input[name="payment_method"]:checked');
+    if (selectedMethod) {
+        if (selectedMethod.value === 'cash') {
+            cashInfo.classList.remove('hidden');
+        } else {
+            nonCashInfo.classList.remove('hidden');
+        }
+    }
+});
+</script>
 </x-app-layout>

@@ -22,20 +22,8 @@ class Payment extends Model
         'receipt_url',
         'notes'
     ];
-    
-    public function reservation(): BelongsTo
-    {
-        return $this->belongsTo(Reservation::class);
-    }
-    
-    public function scopeReservationPayments($query)
-    {
-        return $query->whereNotNull('reservation_id');
-    }
 
     protected $casts = [
-        'order_id' => 'integer',
-        'reservation_id' => 'integer',
         'amount' => 'decimal:2',
         'amount_paid' => 'decimal:2',
         'change' => 'decimal:2',
@@ -43,7 +31,12 @@ class Payment extends Model
 
     public function order(): BelongsTo
     {
-        return $this->belongsTo(Order::class);
+        return $this->belongsTo(Order::class, 'order_id');
+    }
+
+    public function reservation(): BelongsTo
+    {
+        return $this->belongsTo(Reservation::class);
     }
 
     public function user(): BelongsTo
@@ -59,5 +52,39 @@ class Payment extends Model
     public function scopePaid($query)
     {
         return $query->where('status', 'paid');
+    }
+
+    public function scopeReservationPayments($query)
+    {
+        return $query->whereNotNull('reservation_id');
+    }
+
+    public function scopeOrderPayments($query)
+    {
+        return $query->whereNotNull('order_id');
+    }
+
+    public function isForReservation()
+    {
+        return !is_null($this->reservation_id);
+    }
+
+    public function isForOrder()
+    {
+        return !is_null($this->order_id);
+    }
+
+    public function scopeNeedsCashierAction($query)
+    {
+        return $query->where('status', 'pending')
+                    ->where(function($q) {
+                        $q->where('payment_method', 'cash')
+                        ->orWhere('payment_method', '!=', 'cash');
+                    });
+    }
+
+    public function isPendingCashier()
+    {
+        return $this->status === 'pending' && $this->payment_method === 'cash';
     }
 }

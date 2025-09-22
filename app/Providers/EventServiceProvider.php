@@ -2,14 +2,14 @@
 
 namespace App\Providers;
 
+use App\Events\OrderCompleted;
+use App\Events\OrderStatusUpdated;
+use App\Events\PaymentStatusUpdated;
 use Illuminate\Auth\Events\Registered;
+use App\Listeners\DeleteCartAfterOrder;
+use App\Listeners\UpdateReservationStatus;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
-use App\Events\PaymentStatusUpdated;
-use App\Events\OrderStatusUpdated;
-// Hapus impor jika file listener dihapus
-// use App\Listeners\DeleteOrderAfterPayment;
-use App\Listeners\DeleteCartAfterOrder;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -23,6 +23,9 @@ class EventServiceProvider extends ServiceProvider
         
         OrderStatusUpdated::class => [
             DeleteCartAfterOrder::class,
+        ],
+        OrderCompleted::class  => [
+            UpdateReservationStatus::class,
         ],
     ];
 

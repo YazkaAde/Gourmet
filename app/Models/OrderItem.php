@@ -12,6 +12,7 @@ class OrderItem extends Model
 
     protected $fillable = [
         'order_id',
+        'reservation_id',
         'menu_id',
         'quantity',
         'price',
@@ -23,8 +24,33 @@ class OrderItem extends Model
         return $this->belongsTo(Order::class);
     }
 
-    public function menu()
+    public function reservation(): BelongsTo
+    {
+        return $this->belongsTo(Reservation::class);
+    }
+
+    public function menu(): BelongsTo
     {
         return $this->belongsTo(Menu::class);
+    }
+
+    public function getSubtotalAttribute()
+    {
+        return $this->total_price ?? ($this->price * $this->quantity);
+    }
+
+    public function scopeFromReservation($query, $reservationId)
+    {
+        return $query->where('reservation_id', $reservationId);
+    }
+
+    public function scopeFromCart($query)
+    {
+        return $query->whereNull('reservation_id');
+    }
+
+    public function isFromReservation()
+    {
+        return !is_null($this->reservation_id);
     }
 }

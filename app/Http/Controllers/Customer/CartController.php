@@ -169,6 +169,7 @@ public function checkout(Request $request)
             OrderItem::create([
                 'order_id' => $order->id,
                 'menu_id' => $cartItem->menu_id,
+                'reservation_id' => null,
                 'quantity' => $cartItem->quantity,
                 'price' => $cartItem->menu->price,
                 'total_price' => $cartItem->menu->price * $cartItem->quantity

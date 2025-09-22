@@ -2,9 +2,9 @@
 
 use App\Models\NumberTable;
 use App\Models\Reservation;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\CheckBlacklist;
-use Illuminate\Http\Request;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\CrewController;
 use App\Http\Controllers\Admin\MenuController;
@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Cashier\PaymentController;
 use App\Http\Controllers\Admin\NumberTableController;
 use App\Http\Controllers\Customer\ReservationController;
+use App\Http\Controllers\Customer\OrderPaymentController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Customer\ReservationPaymentController;
 
@@ -38,6 +39,7 @@ Route::middleware(['auth', CheckBlacklist::class])->group(function () {
     
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
+
 });
 
 // Admin Routes
@@ -123,8 +125,18 @@ Route::middleware(['auth', 'role:customer', CheckBlacklist::class])->group(funct
         Route::get('/', [OrderController::class, 'index'])->name('index');
         Route::get('/{order}', [OrderController::class, 'show'])->name('show');
         Route::delete('/{order}/cancel', [OrderController::class, 'cancel'])->name('cancel');
-        Route::get('/{order}/payment', [\App\Http\Controllers\Customer\PaymentController::class, 'create'])->name('payment.create');
-        Route::post('/{order}/payment', [\App\Http\Controllers\Customer\PaymentController::class, 'store'])->name('payment.store');
+        
+        // Payment routes untuk order biasa
+        Route::get('/{order}/payment', [OrderPaymentController::class, 'create'])
+            ->name('payment.create');
+        Route::post('/{order}/payment', [OrderPaymentController::class, 'store'])
+            ->name('payment.store');
+        
+        // Payment routes untuk order dari reservasi
+        Route::get('/{order}/pay-from-reservation', [OrderController::class, 'showPayFromReservation'])
+            ->name('pay-from-reservation.show');
+        Route::post('/{order}/pay-from-reservation', [OrderController::class, 'payFromReservation'])
+            ->name('pay-from-reservation.store');
     });
 
     // Customer Review Routes

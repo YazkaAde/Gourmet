@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Customer;
 
 use App\Models\Order;
 use App\Models\Review;
+use App\Models\Payment;
+use App\Models\Reservation;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -41,8 +43,9 @@ class OrderController extends Controller
         
         $order->load([
             'orderItems.menu', 
-            'orderItems.menu.reviews' => function($query) {
-                $query->where('user_id', auth()->id());
+            'orderItems.menu.reviews' => function($query) use ($order) {
+                $query->where('user_id', auth()->id())
+                    ->where('order_id', $order->id);
             }, 
             'reservation', 
             'table', 
@@ -51,6 +54,7 @@ class OrderController extends Controller
         
         return view('customer.orders.show', compact('order'));
     }
+
     public function cancel(Order $order)
     {
         if ($order->user_id !== Auth::id()) {
@@ -66,4 +70,72 @@ class OrderController extends Controller
         return redirect()->route('customer.orders.index')->with('success', 'Order cancelled successfully.');
     }
 
+public function payFromReservation(Order $order, Request $request)
+{
+    if ($order->user_id !== Auth::id() || !$order->reservation_id) {
+        abort(403);
+    }
+    
+    $reservation = $order->reservation;
+    
+    if ($reservation->status !== 'confirmed') {
+        return back()->with('error', 'Reservation is not confirmed yet.');
+    }
+    
+    $totalPaidForReservation = $reservation->payments()->where('status', 'paid')->sum('amount');
+    $reservationFee = $reservation->reservation_fee;
+    $paidForMenu = max($totalPaidForReservation - $reservationFee, 0);
+    
+    $remainingPayment = max($order->total_price - $paidForMenu, 0);
+    
+    if ($remainingPayment <= 0) {
+        return back()->with('info', 'Order has been fully paid.');
+    }
+    
+    $request->validate([
+        'payment_method' => 'required|in:cash,credit_card,debit_card,qris,bank_transfer',
+        'amount_paid' => [
+            'required',
+            'numeric',
+            'min:' . $remainingPayment,
+            'max:' . $remainingPayment
+        ],
+    ]);
+    
+    $paymentData = [
+        'order_id' => $order->id,
+        'user_id' => Auth::id(),
+        'amount' => $request->amount_paid,
+        'payment_method' => $request->payment_method,
+        'status' => $request->payment_method === 'cash' ? 'paid' : 'pending',
+        'notes' => 'Payment for order from reservation #' . $reservation->id,
+    ];
+    
+    if ($request->payment_method === 'cash') {
+        $paymentData['amount_paid'] = $request->amount_paid;
+        $paymentData['change'] = 0;
+    }
+    
+    $payment = Payment::create($paymentData);
+    
+    if ($payment->status === 'paid') {
+        $order->update(['status' => 'completed']);
+        
+        $this->checkReservationCompletion($reservation);
+    }
+    
+    return redirect()->route('customer.orders.show', $order)
+        ->with('success', 'Payment processed successfully.');
+}
+
+private function checkReservationCompletion(Reservation $reservation)
+{
+    $allOrdersCompleted = $reservation->orders()
+        ->where('status', '!=', 'completed')
+        ->doesntExist();
+    
+    if ($allOrdersCompleted) {
+        $reservation->update(['status' => 'completed']);
+    }
+}
 }

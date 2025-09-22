@@ -65,9 +65,9 @@
                                     
                                     <div class="border-t pt-4">
                                         <h4 class="font-medium mb-2">Current Order</h4>
-                                        @if($reservation->preOrderItems->count() > 0)
+                                        @if($reservation->orderItems->count() > 0)
                                         <div class="space-y-2 mb-4">
-                                            @foreach($reservation->preOrderItems as $item)
+                                            @foreach($reservation->orderItems as $item)
                                             <div class="flex justify-between text-sm">
                                                 <span>{{ $item->menu->name }} (x{{ $item->quantity }})</span>
                                                 <span>Rp {{ number_format($item->menu->price * $item->quantity, 0) }}</span>
@@ -85,7 +85,7 @@
                                             </div>
                                             <div class="flex justify-between font-medium">
                                                 <span>Menu Total:</span>
-                                                <span>Rp {{ number_format($reservation->preOrderItems->sum(function($item) { return $item->menu->price * $item->quantity; }), 0) }}</span>
+                                                <span>Rp {{ number_format($reservation->orderItems->sum(function($item) { return $item->menu->price * $item->quantity; }), 0) }}</span>
                                             </div>
                                             <div class="flex justify-between font-bold text-lg mt-2">
                                                 <span>Total:</span>
@@ -100,7 +100,7 @@
                                        class="px-4 py-2 bg-gray-300 text-gray-700 rounded text-center hover:bg-gray-400">
                                         Back to Reservation
                                     </a>
-                                    @if($reservation->preOrderItems->count() > 0)
+                                    @if($reservation->orderItems->count() > 0)
                                     <form action="{{ route('customer.reservations.clear-menu', $reservation) }}" method="POST">
                                         @csrf
                                         @method('DELETE')

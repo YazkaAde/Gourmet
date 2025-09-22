@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('number_tables', function (Blueprint $table) {
             $table->id();
             $table->string('table_number')->unique();
-            $table->string('table_capacity');
+            $table->integer('table_capacity');
             $table->timestamps();
         });
     }
