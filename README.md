@@ -53,3 +53,8 @@ Sebuah aplikasi yang dapat digunakan untuk pemesanan makanan dan minuman pada se
 - jika user memilih Transfer bank maka akan muncul inputan bank yang dipilih dan juga nomer rekening dan nominal
 - jika user memilih Debit Card maka akan muncul inputan debit yang dipilih dan juga nomer rekening dan nominal
 - jika user memilih Qris maka akan muncul inputan Qris yang dipilih dan juga nomer qris dan nominal
+
+operasional
+pengembangan
+marketing
+manajemen

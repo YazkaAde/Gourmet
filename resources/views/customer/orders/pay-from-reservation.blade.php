@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Pay Remaining Balance for Order') }} #{{ $order->id }}
+            {{ __('Pay Order from Reservation') }} #{{ $order->id }}
         </h2>
     </x-slot>
 
@@ -63,11 +63,11 @@
                             </div>
                             <div class="flex justify-between">
                                 <span>Already Paid (via Reservation):</span>
-                                <span>Rp {{ number_format($alreadyPaid, 0) }}</span>
+                                <span>Rp {{ number_format($paidForMenu, 0) }}</span>
                             </div>
                             <div class="flex justify-between font-bold border-t pt-2">
                                 <span>Remaining Balance:</span>
-                                <span>Rp {{ number_format($remainingBalance, 0) }}</span>
+                                <span>Rp {{ number_format($remainingPayment, 0) }}</span>
                             </div>
                         </div>
                     </div>
@@ -107,16 +107,16 @@
                             </div>
                         </div>
 
-                        <input type="hidden" name="amount_paid" value="{{ $remainingBalance }}">
+                        <input type="hidden" name="amount_paid" value="{{ $remainingPayment }}">
 
                         <div class="flex justify-end space-x-3">
-                            <a href="{{ route('customer.orders.show', $order) }}" 
+                            <a href="{{ route('customer.reservations.show', $order->reservation) }}" 
                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
-                                Back to Order
+                                Back to Reservation
                             </a>
                             <button type="submit" 
                                     class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700">
-                                Pay Rp {{ number_format($remainingBalance, 0) }}
+                                Pay Rp {{ number_format($remainingPayment, 0) }}
                             </button>
                         </div>
                     </form>

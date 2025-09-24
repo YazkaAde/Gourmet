@@ -42,9 +42,10 @@
                                         @endif
                                         <div class="text-right">
                                             <span class="px-3 py-1 rounded-full text-sm font-medium 
-                                                @if($reservation->status == 'confirmed') bg-green-100 text-green-800
+                                                @if($reservation->status == 'confirmed') bg-blue-100 text-blue-800
                                                 @elseif($reservation->status == 'pending') bg-yellow-100 text-yellow-800
                                                 @elseif($reservation->status == 'cancelled') bg-red-100 text-red-800
+                                                @elseif($reservation->status == 'completed') bg-green-100 text-green-800
                                                 @endif">
                                                 {{ ucfirst($reservation->status) }}
                                             </span>

@@ -134,10 +134,10 @@ Route::middleware(['auth', 'role:customer', CheckBlacklist::class])->group(funct
         
         // Payment routes untuk order dari reservasi
         Route::get('/{order}/pay-from-reservation', [OrderController::class, 'showPayFromReservation'])
-            ->name('pay-from-reservation.show');
+        ->name('pay-from-reservation.create');
         Route::post('/{order}/pay-from-reservation', [OrderController::class, 'payFromReservation'])
             ->name('pay-from-reservation.store');
-    });
+        });
 
     // Customer Review Routes
     Route::prefix('reviews')->name('customer.reviews.')->group(function() {
@@ -186,6 +186,8 @@ Route::middleware(['auth', 'role:customer', CheckBlacklist::class])->group(funct
         Route::prefix('{reservation}/menu')->name('menu.')->group(function() {
             Route::get('/add', [ReservationController::class, 'addMenu'])->name('add');
             Route::post('/store', [ReservationController::class, 'storeMenu'])->name('store');
+            Route::put('/{orderItem}/update', [ReservationController::class, 'updateMenuItem'])->name('update');
+            Route::delete('/{orderItem}/remove', [ReservationController::class, 'removeMenuItem'])->name('remove');
             Route::delete('/clear', [ReservationController::class, 'clearMenu'])->name('clear');
         });
         

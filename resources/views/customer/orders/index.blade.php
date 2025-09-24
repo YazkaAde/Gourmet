@@ -10,8 +10,9 @@
             @if($orders->isEmpty())
                 <div class="bg-white p-6 rounded-lg shadow text-center">
                     <p class="text-gray-600 mb-4">You don't have any orders yet</p>
+                    <p class="text-gray-500 text-sm mb-4">Note: Orders from reservations are shown in the reservations section</p>
                     <a href="{{ route('customer.menu.index') }}" class="inline-flex items-center px-4 py-2 bg-primary-600 border border-transparent rounded-md font-semibold text-white hover:bg-primary-700 transition">
-                        Browse Menu
+                        Order Now
                     </a>
                 </div>
             @else

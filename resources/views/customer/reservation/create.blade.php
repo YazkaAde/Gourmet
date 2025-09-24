@@ -160,8 +160,14 @@
                         <div class="mt-6 p-4 bg-gray-50 rounded-md">
                             <h3 class="text-lg font-medium text-gray-900">Ringkasan Reservasi</h3>
                             <div class="mt-2 grid grid-cols-2 gap-2">
-                                <p class="text-sm text-gray-600">Biaya Reservasi:</p>
+                                <p class="text-sm text-gray-600">Biaya Meja:</p>
                                 <p class="text-sm font-medium" id="reservation-fee">Rp 0</p>
+                                
+                                <p class="text-sm text-gray-600">Total Menu:</p>
+                                <p class="text-sm font-medium" id="menu-total">Rp 0</p>
+                                
+                                <p class="text-sm text-gray-600">Total Amount:</p>
+                                <p class="text-sm font-medium" id="total-amount">Rp 0</p>
                                 
                                 <p class="text-sm text-gray-600">DP (10%):</p>
                                 <p class="text-sm font-medium" id="down-payment">Rp 0</p>
@@ -194,38 +200,38 @@
             const tableSelect = document.getElementById('table_number');
             let menuItemCount = {{ count(old('menu_items', [])) }};
 
-                async function checkTableAvailability() {
-            const date = reservationDateInput.value;
-            const time = reservationTimeInput.value;
-            
-            if (!date || !time) return;
-            
-            try {
-                const response = await fetch(`/api/available-tables?date=${date}&time=${time}`);
-                const availableTables = await response.json();
+            async function checkTableAvailability() {
+                const date = reservationDateInput.value;
+                const time = reservationTimeInput.value;
                 
-                Array.from(tableSelect.options).forEach(option => {
-                    if (option.value) {
-                        const isAvailable = availableTables.some(table => table.table_number == option.value);
-                        option.disabled = !isAvailable;
-                        if (!isAvailable && option.selected) {
-                            option.selected = false;
-                            tableSelect.value = '';
+                if (!date || !time) return;
+                
+                try {
+                    const response = await fetch(`/api/available-tables?date=${date}&time=${time}`);
+                    const availableTables = await response.json();
+                    
+                    Array.from(tableSelect.options).forEach(option => {
+                        if (option.value) {
+                            const isAvailable = availableTables.some(table => table.table_number == option.value);
+                            option.disabled = !isAvailable;
+                            if (!isAvailable && option.selected) {
+                                option.selected = false;
+                                tableSelect.value = '';
+                            }
                         }
-                    }
-                });
-            } catch (error) {
-                console.error('Error checking table availability:', error);
+                    });
+                } catch (error) {
+                    console.error('Error checking table availability:', error);
+                }
             }
-        }
-        
-        reservationDateInput.addEventListener('change', checkTableAvailability);
-        reservationTimeInput.addEventListener('change', checkTableAvailability);
-        
-        if (reservationDateInput.value && reservationTimeInput.value) {
-            checkTableAvailability();
-        }
-        
+            
+            reservationDateInput.addEventListener('change', checkTableAvailability);
+            reservationTimeInput.addEventListener('change', checkTableAvailability);
+            
+            if (reservationDateInput.value && reservationTimeInput.value) {
+                checkTableAvailability();
+            }
+            
             addMenuItemButton.addEventListener('click', function() {
                 const templateContent = menuItemTemplate.innerHTML;
                 const newMenuItem = templateContent.replace(/INDEX/g, menuItemCount);
@@ -259,22 +265,45 @@
                     calculateTotal();
                 });
                 
+                calculateSubtotal();
                 menuItemCount++;
             });
-        
+
             function calculateTotal() {
-                let total = parseFloat(document.getElementById('reservation-fee').textContent.replace(/[^\d]/g, '') || 0);
+                // Hitung biaya meja
+                const tableSelect = document.getElementById('table_number');
+                const selectedOption = tableSelect.options[tableSelect.selectedIndex];
+                let tableFee = 0;
                 
+                if (selectedOption && selectedOption.value) {
+                    const capacity = parseInt(selectedOption.getAttribute('data-capacity'));
+                    tableFee = capacity * 10000;
+                    
+                    if (capacity >= 8) {
+                        tableFee = tableFee * 0.8;
+                    }
+                }
+                
+                // Hitung total menu
+                let menuTotal = 0;
                 document.querySelectorAll('.menu-item').forEach(item => {
                     const subtotalText = item.querySelector('.menu-subtotal').textContent;
                     const subtotal = parseFloat(subtotalText.replace(/[^\d]/g, '') || 0);
-                    total += subtotal;
+                    menuTotal += subtotal;
                 });
                 
-                const dp = total * 0.1;
-                document.getElementById('down-payment').textContent = 'Rp ' + dp.toLocaleString();
+                const totalAmount = tableFee + menuTotal;
+                const downPayment = totalAmount * 0.1;
+                
+                // Update tampilan
+                document.getElementById('reservation-fee').textContent = 'Rp ' + tableFee.toLocaleString();
+                document.getElementById('menu-total').textContent = 'Rp ' + menuTotal.toLocaleString();
+                document.getElementById('total-amount').textContent = 'Rp ' + totalAmount.toLocaleString();
+                document.getElementById('down-payment').textContent = 'Rp ' + downPayment.toLocaleString();
             }
 
+            tableSelect.addEventListener('change', calculateTotal);
+            
             calculateTotal();
             
             document.querySelectorAll('.menu-item').forEach(item => {
@@ -288,6 +317,24 @@
                     const subtotal = price * quantity;
                     subtotalElement.textContent = 'Rp ' + subtotal.toLocaleString();
                 }
+                
+                select.addEventListener('change', function() {
+                    const price = parseFloat(this.options[this.selectedIndex].getAttribute('data-price'));
+                    const quantity = parseInt(quantityInput.value);
+                    const subtotal = price * quantity;
+                    subtotalElement.textContent = 'Rp ' + subtotal.toLocaleString();
+                    calculateTotal();
+                });
+                
+                quantityInput.addEventListener('input', function() {
+                    if (select.value) {
+                        const price = parseFloat(select.options[select.selectedIndex].getAttribute('data-price'));
+                        const quantity = parseInt(this.value);
+                        const subtotal = price * quantity;
+                        subtotalElement.textContent = 'Rp ' + subtotal.toLocaleString();
+                        calculateTotal();
+                    }
+                });
             });
         });
     </script>

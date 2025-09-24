@@ -154,7 +154,7 @@ class ReservationController extends Controller
 
     public function addMenu(Reservation $reservation)
     {
-        if ($reservation->user_id !== Auth::id()) {
+        if ($reservation->user_id !== Auth::id() || in_array($reservation->status, ['completed', 'cancelled'])) {
             abort(403);
         }
 
@@ -162,9 +162,41 @@ class ReservationController extends Controller
         return view('customer.reservation.add-menu', compact('reservation', 'menus'));
     }
 
+    public function updateMenuItem(Request $request, Reservation $reservation, OrderItem $orderItem)
+    {
+        if ($reservation->user_id !== Auth::id() || in_array($reservation->status, ['completed', 'cancelled'])) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'quantity' => 'required|integer|min:1',
+        ]);
+
+        $orderItem->update([
+            'quantity' => $validated['quantity'],
+            'total_price' => $orderItem->price * $validated['quantity']
+        ]);
+
+        $reservation->syncOrderItems();
+
+        return back()->with('success', 'Menu item updated successfully');
+    }
+
+    public function removeMenuItem(Reservation $reservation, OrderItem $orderItem)
+    {
+        if ($reservation->user_id !== Auth::id() || in_array($reservation->status, ['completed', 'cancelled'])) {
+            abort(403);
+        }
+
+        $orderItem->delete();
+        $reservation->syncOrderItems();
+
+        return back()->with('success', 'Menu item removed successfully');
+    }
+
     public function storeMenu(Request $request, Reservation $reservation)
     {
-        if ($reservation->user_id !== Auth::id()) {
+        if ($reservation->user_id !== Auth::id() || in_array($reservation->status, ['completed', 'cancelled'])) {
             abort(403);
         }
 
@@ -173,17 +205,38 @@ class ReservationController extends Controller
             'quantity' => 'required|integer|min:1',
         ]);
 
+        $existingItem = OrderItem::where('reservation_id', $reservation->id)
+            ->where('menu_id', $validated['menu_id'])
+            ->whereNull('order_id')
+            ->first();
+
         $menu = \App\Models\Menu::find($validated['menu_id']);
         
-        OrderItem::create([
-            'reservation_id' => $reservation->id,
-            'menu_id' => $validated['menu_id'],
-            'quantity' => $validated['quantity'],
-            'price' => $menu->price,
-            'total_price' => $menu->price * $validated['quantity']
-        ]);
+        if ($existingItem) {
+            $existingItem->update([
+                'quantity' => $existingItem->quantity + $validated['quantity'],
+                'total_price' => $menu->price * ($existingItem->quantity + $validated['quantity'])
+            ]);
+        } else {
+            OrderItem::create([
+                'reservation_id' => $reservation->id,
+                'menu_id' => $validated['menu_id'],
+                'quantity' => $validated['quantity'],
+                'price' => $menu->price,
+                'total_price' => $menu->price * $validated['quantity']
+            ]);
+        }
 
-        return back()->with('success', 'Menu added to reservation');
+        $reservation->syncOrderItems();
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Menu added to reservation successfully'
+            ]);
+        }
+
+        return back()->with('success', 'Menu added to reservation successfully');
     }
 
     public function clearMenu(Reservation $reservation)

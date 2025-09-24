@@ -37,10 +37,10 @@
                         <div>
                             <p class="text-sm text-gray-600">Status</p>
                             <span class="px-2 py-1 text-xs font-semibold rounded-full 
-                                @if($reservation->status == 'confirmed') bg-green-100 text-green-800
+                                @if($reservation->status == 'confirmed') bg-blue-100 text-blue-800
                                 @elseif($reservation->status == 'pending') bg-yellow-100 text-yellow-800
                                 @elseif($reservation->status == 'cancelled') bg-red-100 text-red-800
-                                @elseif($reservation->status == 'completed') bg-blue-100 text-blue-800
+                                @elseif($reservation->status == 'completed') bg-green-100 text-green-800
                                 @else bg-gray-100 text-gray-800 @endif">
                                 {{ ucfirst($reservation->status) }}
                             </span>
@@ -141,6 +141,19 @@
                             <span>Rp {{ number_format($reservation->orderItems->sum('total_price'), 0) }}</span>
                         </div>
                     </div>
+                </div>
+            </div>
+            @endif
+
+            <!-- Add Menu Items Section -->
+            @if(!in_array($reservation->status, ['completed', 'cancelled']))
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mt-6">
+                <div class="p-6 bg-white border-b border-gray-200">
+                    <h3 class="text-lg font-semibold mb-4">Manage Menu Items</h3>
+                    <a href="{{ route('customer.reservations.menu.add', $reservation) }}" 
+                    class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                        Manage Menu Items
+                    </a>
                 </div>
             </div>
             @endif
@@ -301,70 +314,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Order Section (jika ada) -->
-            @if($reservation->orders()->exists())
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mt-6">
-                <div class="p-6 bg-white border-b border-gray-200">
-                    <h3 class="text-lg font-semibold mb-4">Order Items</h3>
-                    
-                    <div class="space-y-4">
-                        @foreach($reservation->orders as $order)
-                        <div class="border rounded-lg p-4">
-                            <div class="flex justify-between items-start mb-4">
-                                <div>
-                                    <h4 class="font-semibold">Order #{{ $order->id }}</h4>
-                                    <p class="text-sm text-gray-600">Status: 
-                                        <span class="px-2 py-1 text-xs font-semibold rounded-full 
-                                            @if($order->status == 'completed') bg-green-100 text-green-800
-                                            @elseif($order->status == 'processing') bg-yellow-100 text-yellow-800
-                                            @elseif($order->status == 'cancelled') bg-red-100 text-red-800
-                                            @else bg-gray-100 text-gray-800 @endif">
-                                            {{ ucfirst($order->status) }}
-                                        </span>
-                                    </p>
-                                </div>
-                                <p class="font-bold">Total: Rp {{ number_format($order->total_price, 0) }}</p>
-                            </div>
-
-                            <div class="border-t pt-4">
-                                <h5 class="font-medium mb-2">Items:</h5>
-                                <div class="space-y-2">
-                                    @foreach($order->orderItems as $orderItem)
-                                    <div class="flex justify-between items-center">
-                                        <div class="flex items-center">
-                                            @if($orderItem->menu->image_url)
-                                                <img src="{{ asset('storage/' . $orderItem->menu->image_url) }}" 
-                                                    alt="{{ $orderItem->menu->name }}"
-                                                    class="w-10 h-10 object-cover rounded mr-3"
-                                                    onerror="this.style.display='none'">
-                                            @endif
-                                            <div>
-                                                <p class="text-sm font-medium">{{ $orderItem->menu->name }}</p>
-                                                <p class="text-xs text-gray-600">Qty: {{ $orderItem->quantity }} × Rp {{ number_format($orderItem->price, 0) }}</p>
-                                            </div>
-                                        </div>
-                                        <p class="text-sm font-medium">Rp {{ number_format($orderItem->total_price, 0) }}</p>
-                                    </div>
-                                    @endforeach
-                                </div>
-                            </div>
-
-                            <!-- Tombol Bayar untuk Order yang belum lunas -->
-                            @if($order->status !== 'completed' && $order->status !== 'cancelled')
-                            <div class="mt-4 pt-4 border-t">
-                                <a href="{{ route('customer.orders.payment.create', $order) }}" 
-                                   class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
-                                    Pay Order
-                                </a>
-                            </div>
-                            @endif
-                        </div>
-                        @endforeach
-                    </div>
-                </div>
-            </div>
-            @endif
         </div>
     </div>
 
