@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->date('reservation_date');
             $table->time('reservation_time');
+            $table->time('end_time');
             $table->integer('guest_count');
             $table->string('table_number');
             $table->foreign('table_number')->references('table_number')->on('number_tables')->onDelete('restrict');

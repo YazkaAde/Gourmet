@@ -43,6 +43,18 @@
                             </div>
 
                             <div>
+                                <label for="end_time" class="block text-sm font-medium text-gray-700">Waktu Berakhir Reservasi</label>
+                                <input type="time" name="end_time" id="end_time" 
+                                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
+                                    value="{{ old('end_time', $reservation->end_time) }}"
+                                    required>
+                                @error('end_time')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                                <p class="text-xs text-gray-500 mt-1">Minimal 1 jam dari waktu mulai</p>
+                            </div>
+
+                            <div>
                                 <label for="guest_count" class="block text-sm font-medium text-gray-700">Jumlah Tamu</label>
                                 <input type="number" name="guest_count" id="guest_count" 
                                     class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
@@ -79,6 +91,71 @@
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
                             </div>
+
+                            <!-- Menu items section -->
+                            <div class="md:col-span-2">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-lg font-medium text-gray-900">Pre-Order Menu Items</h3>
+                                    <button type="button" 
+                                            onclick="openAddMenuModal()"
+                                            class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                                        + Add Menu Items
+                                    </button>
+                                </div>
+                                
+                                <div id="menu-items-container" class="space-y-4">
+                                    @foreach($reservation->orderItems->groupBy('menu_id') as $menuItems)
+                                        @php 
+                                            $item = $menuItems->first(); 
+                                            $totalQuantity = $menuItems->sum('quantity');
+                                        @endphp
+                                        <div class="menu-item border rounded-lg p-4">
+                                            <div class="flex justify-between items-center">
+                                                <div class="flex items-center flex-1">
+                                                    @if($item->menu->image_url)
+                                                        <img src="{{ asset('storage/' . $item->menu->image_url) }}" 
+                                                            alt="{{ $item->menu->name }}"
+                                                            class="w-16 h-16 object-cover rounded mr-4"
+                                                            onerror="this.style.display='none'">
+                                                    @endif
+                                                    <div class="flex-1">
+                                                        <h4 class="font-semibold">{{ $item->menu->name }}</h4>
+                                                        <p class="text-sm text-gray-600">Rp {{ number_format($item->price, 0) }} per item</p>
+                                                        <input type="hidden" name="menu_items[{{ $loop->index }}][menu_id]" value="{{ $item->menu->id }}">
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="flex items-center gap-4">
+                                                    <div class="flex items-center border rounded-lg overflow-hidden">
+                                                        <input type="number" 
+                                                            name="menu_items[{{ $loop->index }}][quantity]" 
+                                                            value="{{ $totalQuantity }}" 
+                                                            min="1" 
+                                                            class="w-20 px-3 py-2 text-center border-0 quantity-input"
+                                                            data-price="{{ $item->price }}">
+                                                    </div>
+                                                    
+                                                    <button type="button" 
+                                                            class="remove-menu-item px-3 py-2 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-colors">
+                                                        Remove
+                                                    </button>
+                                                    
+                                                    <p class="font-medium w-24 text-right item-total">
+                                                        Rp {{ number_format($item->price * $totalQuantity, 0) }}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+
+                                @if($reservation->orderItems->count() == 0)
+                                <div class="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                                    <p class="text-gray-500">No menu items added yet.</p>
+                                    <p class="text-sm text-gray-400 mt-1">Click "Add Menu Items" to select from our menu</p>
+                                </div>
+                                @endif
+                            </div>
                         </div>
 
                         <!-- Reservation Summary -->
@@ -88,13 +165,19 @@
                                 <p class="text-sm text-gray-600">Biaya Reservasi:</p>
                                 <p class="text-sm font-medium" id="reservation-fee">Rp 0</p>
                                 
+                                <p class="text-sm text-gray-600">Total Menu:</p>
+                                <p class="text-sm font-medium" id="menu-total">Rp 0</p>
+                                
+                                <p class="text-sm text-gray-600">Total Amount:</p>
+                                <p class="text-sm font-medium" id="total-amount">Rp 0</p>
+                                
                                 <p class="text-sm text-gray-600">DP (10%):</p>
                                 <p class="text-sm font-medium" id="down-payment">Rp 0</p>
                             </div>
                         </div>
 
                         <div class="mt-6 flex justify-end space-x-3">
-                            <a href="{{ route('customer.reservations.index', $reservation) }}" 
+                            <a href="{{ route('customer.reservations.show', $reservation) }}" 
                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
                                 Batal
                             </a>
@@ -122,6 +205,10 @@
                             <p class="font-medium">{{ $reservation->reservation_time }}</p>
                         </div>
                         <div>
+                            <p class="text-sm text-gray-600">Waktu Berakhir</p>
+                            <p class="font-medium">{{ $reservation->end_time }}</p>
+                        </div>
+                        <div>
                             <p class="text-sm text-gray-600">Jumlah Tamu</p>
                             <p class="font-medium">{{ $reservation->guest_count }} guests</p>
                         </div>
@@ -141,51 +228,363 @@
         </div>
     </div>
 
+    @include('customer.reservation.partials.add-menu-modal', ['reservation' => $reservation, 'menus' => $menus])
+
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const tableSelect = document.getElementById('table_number');
-            const reservationFee = document.getElementById('reservation-fee');
-            const downPayment = document.getElementById('down-payment');
-            const timeInput = document.getElementById('reservation_time');
+            document.addEventListener('DOMContentLoaded', function() {
+        const menuItemsContainer = document.getElementById('menu-items-container');
+        let menuItemIndex = {{ count(old('menu_items', [])) }};
 
-            timeInput.min = '09:00';
-            timeInput.max = '21:00';
-
-            timeInput.addEventListener('change', function() {
-                const selectedTime = this.value;
-                if (selectedTime) {
-                    const [hours, minutes] = selectedTime.split(':').map(Number);
-                    
-                    if (hours < 9 || hours > 21) {
-                        alert('Waktu reservasi hanya tersedia dari jam 09:00 sampai 21:00');
-                        this.value = '{{ $reservation->reservation_time }}';
+        // Initialize menu items event listeners dengan event delegation
+        function initializeMenuItems() {
+            // Gunakan event delegation untuk menangani klik pada seluruh container
+            menuItemsContainer.addEventListener('click', function(e) {
+                // Handle tombol tambah
+                if (e.target.classList.contains('increase-quantity')) {
+                    const index = e.target.getAttribute('data-index');
+                    const input = document.querySelector(`.quantity-input[data-index="${index}"]`);
+                    if (input) {
+                        input.value = parseInt(input.value) + 1;
+                        updateItemTotal(index);
+                        calculateReservationFee();
+                    }
+                }
+                
+                // Handle tombol kurang
+                if (e.target.classList.contains('decrease-quantity')) {
+                    const index = e.target.getAttribute('data-index');
+                    const input = document.querySelector(`.quantity-input[data-index="${index}"]`);
+                    if (input && parseInt(input.value) > 1) {
+                        input.value = parseInt(input.value) - 1;
+                        updateItemTotal(index);
+                        calculateReservationFee();
+                    }
+                }
+                
+                // Handle tombol remove
+                if (e.target.classList.contains('remove-menu-item')) {
+                    const index = e.target.getAttribute('data-index');
+                    const item = document.querySelector(`.menu-item[data-index="${index}"]`);
+                    if (item) {
+                        item.remove();
+                        calculateReservationFee();
+                        updateEmptyState();
                     }
                 }
             });
 
-            function calculateReservationFee() {
-                const selectedOption = tableSelect.options[tableSelect.selectedIndex];
-                if (selectedOption && selectedOption.value) {
-                    const capacity = parseInt(selectedOption.getAttribute('data-capacity'));
-                    let price = capacity * 10000;
-                    
-                    if (capacity >= 8) {
-                        price = price * 0.8;
-                    }
-                    
-                    const dp = price * 0.1;
-                    
-                    reservationFee.textContent = 'Rp ' + price.toLocaleString();
-                    downPayment.textContent = 'Rp ' + dp.toLocaleString();
-                } else {
-                    reservationFee.textContent = 'Rp 0';
-                    downPayment.textContent = 'Rp 0';
+            // Event listener untuk input quantity manual
+            menuItemsContainer.addEventListener('input', function(e) {
+                if (e.target.classList.contains('quantity-input')) {
+                    const index = e.target.getAttribute('data-index');
+                    updateItemTotal(index);
+                    calculateReservationFee();
                 }
+            });
+        }
+
+        // Update item total display
+        function updateItemTotal(index) {
+            const input = document.querySelector(`.quantity-input[data-index="${index}"]`);
+            const price = parseFloat(input.getAttribute('data-price'));
+            const quantity = parseInt(input.value);
+            const total = price * quantity;
+            const totalElement = document.querySelector(`.item-total[data-index="${index}"]`);
+            if (totalElement) {
+                totalElement.textContent = 'Rp ' + total.toLocaleString('id-ID');
             }
+        }
+        
+        // Update empty state
+        function updateEmptyState() {
+            const menuItems = document.querySelectorAll('.menu-item');
+            const emptyState = document.getElementById('empty-state');
+            
+            if (menuItems.length === 0 && !emptyState) {
+                const emptyDiv = document.createElement('div');
+                emptyDiv.id = 'empty-state';
+                emptyDiv.className = 'text-center py-8 border-2 border-dashed border-gray-300 rounded-lg';
+                emptyDiv.innerHTML = `
+                    <p class="text-gray-500">No menu items added yet.</p>
+                    <p class="text-sm text-gray-400 mt-1">Click "Add Menu Items" to select from our menu</p>
+                `;
+                menuItemsContainer.appendChild(emptyDiv);
+            } else if (menuItems.length > 0 && emptyState) {
+                emptyState.remove();
+            }
+        }
 
-            tableSelect.addEventListener('change', calculateReservationFee);
-
+        // Function to add menu item from modal
+        window.addMenuItemToForm = function(menuId, menuName, menuPrice, menuImage, quantity = 1) {
+            const emptyState = document.getElementById('empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+            
+            // Check if item already exists
+            const existingInput = document.querySelector(`input[value="${menuId}"][name*="menu_id"]`);
+            if (existingInput) {
+                const existingIndex = existingInput.name.match(/\[(\d+)\]/)[1];
+                const quantityInput = document.querySelector(`.quantity-input[data-index="${existingIndex}"]`);
+                const currentQuantity = parseInt(quantityInput.value);
+                quantityInput.value = currentQuantity + quantity;
+                updateItemTotal(existingIndex);
+                calculateReservationFee();
+                showNotification('Menu item quantity updated!', 'success');
+                return;
+            }
+            
+            const index = menuItemIndex++;
+            const menuItemHtml = `
+                <div class="menu-item border rounded-lg p-4" data-index="${index}">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center flex-1">
+                            ${menuImage ? `<img src="${menuImage}" alt="${menuName}" class="w-16 h-16 object-cover rounded mr-4" onerror="this.style.display='none'">` : ''}
+                            <div class="flex-1">
+                                <h4 class="font-semibold">${menuName}</h4>
+                                <p class="text-sm text-gray-600">Rp ${parseInt(menuPrice).toLocaleString('id-ID')} per item</p>
+                                <input type="hidden" name="menu_items[${index}][menu_id]" value="${menuId}">
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center gap-4">
+                            <div class="flex items-center border rounded-lg overflow-hidden">
+                                <button type="button" 
+                                        class="px-3 py-2 bg-gray-200 hover:bg-gray-300 decrease-quantity transition-colors"
+                                        data-index="${index}">
+                                    -
+                                </button>
+                                <input type="number" 
+                                    name="menu_items[${index}][quantity]" 
+                                    value="${quantity}" 
+                                    min="1" 
+                                    class="w-16 px-2 py-2 text-center border-0 quantity-input"
+                                    data-index="${index}"
+                                    data-price="${menuPrice}">
+                                <button type="button" 
+                                        class="px-3 py-2 bg-gray-200 hover:bg-gray-300 increase-quantity transition-colors"
+                                        data-index="${index}">
+                                    +
+                                </button>
+                            </div>
+                            
+                            <button type="button" 
+                                    class="remove-menu-item px-3 py-2 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-colors"
+                                    data-index="${index}">
+                                Remove
+                            </button>
+                            
+                            <p class="font-medium w-24 text-right item-total" data-index="${index}">
+                                Rp ${(menuPrice * quantity).toLocaleString('id-ID')}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            menuItemsContainer.insertAdjacentHTML('beforeend', menuItemHtml);
+            
             calculateReservationFee();
+            showNotification('Menu item added successfully!', 'success');
+        }
+
+        // Initialize existing menu items
+        initializeMenuItems();
+        updateEmptyState();
+    });
+
+    function calculateReservationFee() {
+        let menuTotal = 0;
+        document.querySelectorAll('.menu-item').forEach(item => {
+            const quantityInput = item.querySelector('.quantity-input');
+            if (quantityInput) {
+                const price = parseFloat(quantityInput.getAttribute('data-price'));
+                const quantity = parseInt(quantityInput.value) || 0;
+                menuTotal += price * quantity;
+            }
         });
+        
+        // Update display
+        document.getElementById('menu-total').textContent = 'Rp ' + menuTotal.toLocaleString('id-ID');
+        document.getElementById('total-amount').textContent = 'Rp ' + menuTotal.toLocaleString('id-ID');
+        document.getElementById('down-payment').textContent = 'Rp ' + (menuTotal * 0.1).toLocaleString('id-ID');
+    }
+
+        function addMenuItemToForm(menuId, menuName, menuPrice, menuImage, quantity = 1) {
+            const menuItemsContainer = document.getElementById('menu-items-container');
+            const emptyState = menuItemsContainer.querySelector('.text-center');
+            
+            if (emptyState) {
+                emptyState.remove();
+            }
+            
+            const existingItem = document.querySelector(`input[value="${menuId}"][name*="menu_id"]`);
+            if (existingItem) {
+                const quantityInput = existingItem.closest('.menu-item').querySelector('.quantity-input');
+                const currentQuantity = parseInt(quantityInput.value);
+                quantityInput.value = currentQuantity + quantity;
+                calculateReservationFee();
+                showNotification('Menu item quantity updated!', 'success');
+                return;
+            }
+            
+            const index = document.querySelectorAll('.menu-item').length;
+            const menuItemHtml = `
+                <div class="menu-item border rounded-lg p-4">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center flex-1">
+                            ${menuImage ? `<img src="${menuImage}" alt="${menuName}" class="w-16 h-16 object-cover rounded mr-4" onerror="this.style.display='none'">` : ''}
+                            <div class="flex-1">
+                                <h4 class="font-semibold">${menuName}</h4>
+                                <p class="text-sm text-gray-600">Rp ${parseInt(menuPrice).toLocaleString('id-ID')} per item</p>
+                                <input type="hidden" name="menu_items[${index}][menu_id]" value="${menuId}">
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center gap-4">
+                            <div class="flex items-center border rounded-lg overflow-hidden">
+                                <input type="number" 
+                                    name="menu_items[${index}][quantity]" 
+                                    value="${quantity}" 
+                                    min="1" 
+                                    class="w-20 px-3 py-2 text-center border-0 quantity-input"
+                                    data-price="${menuPrice}">
+                            </div>
+                            
+                            <button type="button" 
+                                    class="remove-menu-item px-3 py-2 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-colors">
+                                Remove
+                            </button>
+                            
+                            <p class="font-medium w-24 text-right item-total">
+                                Rp ${(menuPrice * quantity).toLocaleString('id-ID')}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            menuItemsContainer.insertAdjacentHTML('beforeend', menuItemHtml);
+            
+            // Initialize event listeners for new item
+            const newItem = menuItemsContainer.lastElementChild;
+            const quantityInput = newItem.querySelector('.quantity-input');
+            const removeButton = newItem.querySelector('.remove-menu-item');
+            
+            quantityInput.addEventListener('input', calculateReservationFee);
+            removeButton.addEventListener('click', function() {
+                newItem.remove();
+                calculateReservationFee();
+                updateEmptyState();
+            });
+            
+            calculateReservationFee();
+            showNotification('Menu item added successfully!', 'success');
+        }
+
+        function showNotification(message, type = 'info') {
+            const existingNotifications = document.querySelectorAll('.custom-notification');
+            existingNotifications.forEach(notification => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            });
+            
+            const notification = document.createElement('div');
+            notification.className = `custom-notification fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-4 py-3 rounded-lg shadow-lg border-l-4 max-w-md w-full mx-4`;
+            
+            let bgColor, borderColor, textColor, icon;
+            switch(type) {
+                case 'success':
+                    bgColor = 'bg-green-50';
+                    borderColor = 'border-green-400';
+                    textColor = 'text-green-700';
+                    icon = '✓';
+                    break;
+                case 'error':
+                    bgColor = 'bg-red-50';
+                    borderColor = 'border-red-400';
+                    textColor = 'text-red-700';
+                    icon = '✗';
+                    break;
+                default:
+                    bgColor = 'bg-blue-50';
+                    borderColor = 'border-blue-400';
+                    textColor = 'text-blue-700';
+                    icon = 'ℹ';
+            }
+            
+            notification.className += ` ${bgColor} ${borderColor} ${textColor}`;
+            
+            notification.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <span class="font-semibold mr-2">${icon}</span>
+                        <span class="text-sm font-medium">${message}</span>
+                    </div>
+                    <button type="button" class="close-notification text-gray-400 hover:text-gray-600 ml-4">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            notification.style.opacity = '0';
+            notification.style.transform = 'translate(-50%, -20px)';
+            
+            setTimeout(() => {
+                notification.style.transition = 'all 0.3s ease-out';
+                notification.style.opacity = '1';
+                notification.style.transform = 'translate(-50%, 0)';
+            }, 10);
+            
+            const closeBtn = notification.querySelector('.close-notification');
+            closeBtn.addEventListener('click', () => {
+                animateNotificationOut(notification);
+            });
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    animateNotificationOut(notification);
+                }
+            }, 3000);
+        }
+
+
+        function animateNotificationOut(notification) {
+            notification.style.transition = 'all 0.3s ease-out';
+            notification.style.opacity = '0';
+            notification.style.transform = 'translate(-50%, -20px)';
+            notification.style.maxHeight = '0';
+            notification.style.marginBottom = '0';
+            notification.style.paddingTop = '0';
+            notification.style.paddingBottom = '0';
+            notification.style.overflow = 'hidden';
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 300);
+        }
+
+        function openAddMenuModal() {
+            const modal = document.getElementById('addMenuModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function closeAddMenuModal() {
+            const modal = document.getElementById('addMenuModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                document.body.style.overflow = 'auto';
+            }
+        }
     </script>
 </x-app-layout>

@@ -156,14 +156,22 @@ Route::middleware(['auth', 'role:customer', CheckBlacklist::class])->group(funct
 
     Route::get('/api/available-tables', function(Request $request) {
         $date = $request->query('date');
-        $time = $request->query('time');
+        $startTime = $request->query('start_time');
+        $endTime = $request->query('end_time');
         
-        if (!$date || !$time) {
+        if (!$date || !$startTime || !$endTime) {
             return response()->json(NumberTable::all());
         }
         
         $occupiedTables = Reservation::where('reservation_date', $date)
-            ->where('reservation_time', $time)
+            ->where(function($query) use ($startTime, $endTime) {
+                $query->whereBetween('reservation_time', [$startTime, $endTime])
+                      ->orWhereBetween('end_time', [$startTime, $endTime])
+                      ->orWhere(function($q) use ($startTime, $endTime) {
+                          $q->where('reservation_time', '<=', $startTime)
+                            ->where('end_time', '>=', $endTime);
+                      });
+            })
             ->whereIn('status', ['pending', 'confirmed'])
             ->pluck('table_number');
         
@@ -189,6 +197,7 @@ Route::middleware(['auth', 'role:customer', CheckBlacklist::class])->group(funct
             Route::put('/{orderItem}/update', [ReservationController::class, 'updateMenuItem'])->name('update');
             Route::delete('/{orderItem}/remove', [ReservationController::class, 'removeMenuItem'])->name('remove');
             Route::delete('/clear', [ReservationController::class, 'clearMenu'])->name('clear');
+            Route::post('/update-items', [ReservationController::class, 'updateMenuItems'])->name('update-items');
         });
         
         // Payment routes

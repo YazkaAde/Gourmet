@@ -10,6 +10,7 @@ use App\Models\OrderItem;
 use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class ReservationController extends Controller
 {
@@ -28,12 +29,29 @@ class ReservationController extends Controller
                 'required',
                 'date_format:H:i',
                 function ($attribute, $value, $fail) {
-                    $time = strtotime($value);
-                    $start = strtotime('09:00');
-                    $end = strtotime('21:00');
+                    $time = Carbon::createFromFormat('H:i', $value);
+                    $start = Carbon::createFromTime(9, 0);
+                    $end = Carbon::createFromTime(21, 0);
                     
-                    if ($time < $start || $time > $end) {
+                    if ($time->lt($start) || $time->gt($end)) {
                         $fail('Waktu reservasi hanya tersedia dari jam 09:00 sampai 21:00');
+                    }
+                },
+            ],
+            'end_time' => [
+                'required',
+                'date_format:H:i',
+                function ($attribute, $value, $fail) use ($request) {
+                    $startTime = Carbon::createFromFormat('H:i', $request->reservation_time);
+                    $endTime = Carbon::createFromFormat('H:i', $value);
+                    $businessEnd = Carbon::createFromTime(21, 0); // 21:00
+                    
+                    if ($endTime->diffInHours($startTime) < 1) {
+                        $fail('Waktu berakhir reservasi harus minimal 1 jam dari waktu mulai');
+                    }
+                    
+                    if ($endTime->gt($businessEnd)) {
+                        $fail('Waktu berakhir reservasi tidak boleh melebihi jam 21:00');
                     }
                 },
             ],
@@ -47,7 +65,14 @@ class ReservationController extends Controller
 
         $isTableAvailable = !Reservation::where('table_number', $validated['table_number'])
             ->where('reservation_date', $validated['reservation_date'])
-            ->where('reservation_time', $validated['reservation_time'])
+            ->where(function($query) use ($validated) {
+                $query->whereBetween('reservation_time', [$validated['reservation_time'], $validated['end_time']])
+                      ->orWhereBetween('end_time', [$validated['reservation_time'], $validated['end_time']])
+                      ->orWhere(function($q) use ($validated) {
+                          $q->where('reservation_time', '<=', $validated['reservation_time'])
+                            ->where('end_time', '>=', $validated['end_time']);
+                      });
+            })
             ->whereIn('status', ['pending', 'confirmed'])
             ->exists();
 
@@ -59,6 +84,7 @@ class ReservationController extends Controller
             'user_id' => Auth::id(),
             'reservation_date' => $validated['reservation_date'],
             'reservation_time' => $validated['reservation_time'],
+            'end_time' => $validated['end_time'],
             'guest_count' => $validated['guest_count'],
             'table_number' => $validated['table_number'],
             'notes' => $validated['notes'] ?? null,
@@ -89,11 +115,11 @@ class ReservationController extends Controller
         }
 
         $reservation->load(['table', 'orderItems.menu', 'payments', 'user', 'orders.orderItems.menu']);
-
+        $menus = \App\Models\Menu::paginate(10);
         $reservation->checkAndUpdateStatus();
         $reservation->refresh();
 
-        return view('customer.reservation.show', compact('reservation'));
+        return view('customer.reservation.show', compact('reservation', 'menus'));
     }
 
     public function index()
@@ -129,7 +155,36 @@ class ReservationController extends Controller
 
         $validated = $request->validate([
             'reservation_date' => 'required|date|after:today',
-            'reservation_time' => 'required|date_format:H:i|after_or_equal:09:00|before_or_equal:21:00',
+            'reservation_time' => [
+                'required',
+                'date_format:H:i',
+                function ($attribute, $value, $fail) {
+                    $time = Carbon::createFromFormat('H:i', $value);
+                    $start = Carbon::createFromTime(9, 0);
+                    $end = Carbon::createFromTime(21, 0);
+                    
+                    if ($time->lt($start) || $time->gt($end)) {
+                        $fail('Waktu reservasi hanya tersedia dari jam 09:00 sampai 21:00');
+                    }
+                },
+            ],
+            'end_time' => [
+                'required',
+                'date_format:H:i',
+                function ($attribute, $value, $fail) use ($request) {
+                    $startTime = Carbon::createFromFormat('H:i', $request->reservation_time);
+                    $endTime = Carbon::createFromFormat('H:i', $value);
+                    $businessEnd = Carbon::createFromTime(21, 0);
+                    
+                    if ($endTime->diffInHours($startTime) < 1) {
+                        $fail('Waktu berakhir reservasi harus minimal 1 jam dari waktu mulai');
+                    }
+                    
+                    if ($endTime->gt($businessEnd)) {
+                        $fail('Waktu berakhir reservasi tidak boleh melebihi jam 21:00');
+                    }
+                },
+            ],
             'guest_count' => 'required|integer|min:1|max:100',
             'table_number' => 'required|exists:number_tables,table_number',
             'notes' => 'nullable|string|max:500',
@@ -137,8 +192,15 @@ class ReservationController extends Controller
 
         $isTableAvailable = !Reservation::where('table_number', $validated['table_number'])
             ->where('reservation_date', $validated['reservation_date'])
-            ->where('reservation_time', $validated['reservation_time'])
             ->where('id', '!=', $reservation->id)
+            ->where(function($query) use ($validated) {
+                $query->whereBetween('reservation_time', [$validated['reservation_time'], $validated['end_time']])
+                      ->orWhereBetween('end_time', [$validated['reservation_time'], $validated['end_time']])
+                      ->orWhere(function($q) use ($validated) {
+                          $q->where('reservation_time', '<=', $validated['reservation_time'])
+                            ->where('end_time', '>=', $validated['end_time']);
+                      });
+            })
             ->whereIn('status', ['pending', 'confirmed'])
             ->exists();
 
@@ -159,28 +221,130 @@ class ReservationController extends Controller
         }
 
         $menus = \App\Models\Menu::paginate(10);
-        return view('customer.reservation.add-menu', compact('reservation', 'menus'));
+        
+        if (request()->ajax() || request()->wantsJson() || request()->hasHeader('X-Requested-With')) {
+            return view('customer.reservation.partials.add-menu-modal', compact('reservation', 'menus'));
+        }
+        
+        return redirect()->route('customer.reservations.show', $reservation)
+        ->with('info', 'Use the "Add Menu Items" button to add menu items.');
     }
 
-    public function updateMenuItem(Request $request, Reservation $reservation, OrderItem $orderItem)
+    public function updateMenuItems(Request $request, Reservation $reservation)
     {
         if ($reservation->user_id !== Auth::id() || in_array($reservation->status, ['completed', 'cancelled'])) {
-            abort(403);
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
         $validated = $request->validate([
-            'quantity' => 'required|integer|min:1',
+            'updates' => 'required|array',
+            'updates.*.itemId' => 'required|exists:order_items,id',
+            'updates.*.quantity' => 'required|integer|min:1',
         ]);
 
-        $orderItem->update([
-            'quantity' => $validated['quantity'],
-            'total_price' => $orderItem->price * $validated['quantity']
-        ]);
+        try {
+            foreach ($validated['updates'] as $update) {
+                $orderItem = OrderItem::find($update['itemId']);
+                if ($orderItem && $orderItem->reservation_id === $reservation->id) {
+                    $orderItem->update([
+                        'quantity' => $update['quantity'],
+                        'total_price' => $orderItem->price * $update['quantity']
+                    ]);
+                }
+            }
+
+            $reservation->syncOrderItems();
+
+            return response()->json([
+                'success' => true, 
+                'message' => 'Menu items updated successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Error updating items: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function storeMenu(Request $request, Reservation $reservation)
+{
+    if ($reservation->user_id !== Auth::id() || in_array($reservation->status, ['completed', 'cancelled'])) {
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Unauthorized action'
+            ], 403);
+        }
+        abort(403);
+    }
+
+    $validated = $request->validate([
+        'menu_id' => 'required|exists:menus,id',
+        'quantity' => 'required|integer|min:1',
+    ]);
+
+    try {
+        $existingItem = OrderItem::where('reservation_id', $reservation->id)
+            ->where('menu_id', $validated['menu_id'])
+            ->first();
+
+        $menu = \App\Models\Menu::find($validated['menu_id']);
+        
+        if ($existingItem) {
+            $existingItem->update([
+                'quantity' => $existingItem->quantity + $validated['quantity'],
+                'total_price' => $menu->price * ($existingItem->quantity + $validated['quantity'])
+            ]);
+            $message = 'Menu item quantity updated successfully!';
+        } else {
+            OrderItem::create([
+                'reservation_id' => $reservation->id,
+                'menu_id' => $validated['menu_id'],
+                'quantity' => $validated['quantity'],
+                'price' => $menu->price,
+                'total_price' => $menu->price * $validated['quantity']
+            ]);
+            $message = 'Menu item added successfully!';
+        }
 
         $reservation->syncOrderItems();
+        $reservation->refresh();
 
-        return back()->with('success', 'Menu item updated successfully');
+        if ($request->ajax() || $request->wantsJson() || $request->hasHeader('X-Requested-With')) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'updated_reservation' => [
+                    'order_items_count' => $reservation->orderItems->count(),
+                    'order_items' => $reservation->orderItems->map(function($item) {
+                        return [
+                            'menu_name' => $item->menu->name,
+                            'quantity' => $item->quantity,
+                            'total_price' => $item->total_price
+                        ];
+                    })->values(),
+                    'menu_total' => $reservation->menu_total,
+                    'total_amount' => $reservation->total_amount,
+                    'down_payment_amount' => $reservation->down_payment_amount
+                ]
+            ]);
+        }
+
+        return back()->with('success', $message);
+
+    } catch (\Exception $e) {
+        if ($request->ajax() || $request->wantsJson() || $request->hasHeader('X-Requested-With')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+        
+        return back()->with('error', 'Error: ' . $e->getMessage());
     }
+}
 
     public function removeMenuItem(Reservation $reservation, OrderItem $orderItem)
     {
@@ -192,51 +356,6 @@ class ReservationController extends Controller
         $reservation->syncOrderItems();
 
         return back()->with('success', 'Menu item removed successfully');
-    }
-
-    public function storeMenu(Request $request, Reservation $reservation)
-    {
-        if ($reservation->user_id !== Auth::id() || in_array($reservation->status, ['completed', 'cancelled'])) {
-            abort(403);
-        }
-
-        $validated = $request->validate([
-            'menu_id' => 'required|exists:menus,id',
-            'quantity' => 'required|integer|min:1',
-        ]);
-
-        $existingItem = OrderItem::where('reservation_id', $reservation->id)
-            ->where('menu_id', $validated['menu_id'])
-            ->whereNull('order_id')
-            ->first();
-
-        $menu = \App\Models\Menu::find($validated['menu_id']);
-        
-        if ($existingItem) {
-            $existingItem->update([
-                'quantity' => $existingItem->quantity + $validated['quantity'],
-                'total_price' => $menu->price * ($existingItem->quantity + $validated['quantity'])
-            ]);
-        } else {
-            OrderItem::create([
-                'reservation_id' => $reservation->id,
-                'menu_id' => $validated['menu_id'],
-                'quantity' => $validated['quantity'],
-                'price' => $menu->price,
-                'total_price' => $menu->price * $validated['quantity']
-            ]);
-        }
-
-        $reservation->syncOrderItems();
-
-        if ($request->ajax()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Menu added to reservation successfully'
-            ]);
-        }
-
-        return back()->with('success', 'Menu added to reservation successfully');
     }
 
     public function clearMenu(Reservation $reservation)

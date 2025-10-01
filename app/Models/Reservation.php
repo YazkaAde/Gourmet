@@ -18,6 +18,7 @@ class Reservation extends Model
         'user_id',
         'reservation_date',
         'reservation_time',
+        'end_time',
         'guest_count',
         'table_number',
         'status',
@@ -27,6 +28,7 @@ class Reservation extends Model
     protected $casts = [
         'reservation_date' => 'date',
         'reservation_time' => 'datetime:H:i',
+        'end_time' => 'datetime:H:i',
     ];
 
     protected $appends = [
@@ -200,28 +202,28 @@ class Reservation extends Model
         }
         
         try {
-            $dateString = $this->reservation_date . ' ' . $this->reservation_time;
+            $dateString = $this->reservation_date . ' ' . $this->end_time;
             
             if (!strtotime($dateString)) {
                 throw new \Exception('Invalid datetime format');
             }
             
-            $reservationDateTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $dateString . ':00');
-            $oneHourAfterReservation = $reservationDateTime->addHour();
-            $isTimePassed = now()->greaterThanOrEqualTo($oneHourAfterReservation);
+            $reservationEndDateTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $dateString . ':00');
+            $isTimePassed = now()->greaterThanOrEqualTo($reservationEndDateTime);
             
             return ($isFullyPaid && $allOrdersCompleted) || $isTimePassed;
         } catch (\Exception $e) {
             \Log::error('DateTime parsing error in reservation', [
                 'id' => $this->id,
                 'date' => $this->reservation_date,
-                'time' => $this->reservation_time,
+                'end_time' => $this->end_time,
                 'error' => $e->getMessage()
             ]);
             
             return $isFullyPaid && $allOrdersCompleted;
         }
     }
+
     public function checkAndUpdateStatus()
     {
         if ($this->shouldBeCompleted() && $this->status !== 'completed') {
@@ -238,16 +240,41 @@ class Reservation extends Model
     }
 
     public function syncOrderItems()
-{
-    if ($this->orders()->exists()) {
-        $order = $this->orders()->first();
-        
-        OrderItem::where('reservation_id', $this->id)
-                ->whereNull('order_id')
-                ->update(['order_id' => $order->id]);
-                
-        $menuTotal = $this->orderItems()->sum('total_price');
-        $order->update(['total_price' => $menuTotal]);
+    {
+        if ($this->orders()->exists()) {
+            $order = $this->orders()->first();
+            
+            OrderItem::where('reservation_id', $this->id)
+                    ->whereNull('order_id')
+                    ->update(['order_id' => $order->id]);
+                    
+            $menuTotal = $this->orderItems()->sum('total_price');
+            $order->update(['total_price' => $menuTotal]);
+        }
     }
-}
+
+    public function calculateEndTime($reservationTime)
+    {
+        $time = \Carbon\Carbon::createFromFormat('H:i', $reservationTime);
+        return $time->copy()->addHours(1)->format('H:i');
+    }
+
+    public function isWithinBusinessHours($time)
+    {
+        $time = \Carbon\Carbon::createFromFormat('H:i', $time);
+        $start = \Carbon\Carbon::createFromTime(9, 0);
+        $end = \Carbon\Carbon::createFromTime(21, 0);
+        
+        return $time->between($start, $end);
+    }
+
+    public function isEndTimeValid($startTime, $endTime)
+    {
+        $start = \Carbon\Carbon::createFromFormat('H:i', $startTime);
+        $end = \Carbon\Carbon::createFromFormat('H:i', $endTime);
+        
+        $diffInHours = $end->diffInHours($start);
+        
+        return $diffInHours >= 1 && $this->isWithinBusinessHours($endTime);
+    }
 }

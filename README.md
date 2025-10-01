@@ -58,3 +58,21 @@ operasional
 pengembangan
 marketing
 manajemen
+
+target
+1. membuat tampilan untuk add-menu untuk reservasi
+2. merubah tampilan payment untuk reservasi dan order dengan metode pembayaran
+3. memperbaiki tampilan sidebar
+4. membuat dashboard untuk cashier
+5. menyelesaikan dashboard admin
+6. menyelesaikan logic untuk payment reservasi
+7. membuat laporan penjualan
+
+
+terimakasih telah membantu saya sejauh ini. sekarang bisakah kamu membuat bagian untuk menampilkan reservation proof yang mencakup
+1. username
+2. tanggal dan waktu create
+3. tanggal dan waktu pemesanan
+4. nomor reservasi
+5. informasi pembayaran = jumlah masing-masing harga, total harga dan sisa uang yang belum dibayarkan
+
