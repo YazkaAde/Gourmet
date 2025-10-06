@@ -15,14 +15,15 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('menu_id')->constrained()->onDelete('cascade');
-            $table->foreignId('order_id')->constrained()->onDelete('cascade');
-            $table->integer('rating')->unsigned()->between(1, 5);
+            $table->foreignId('order_id')->nullable()->constrained()->onDelete('cascade');
+            $table->foreignId('reservation_id')->nullable()->constrained()->onDelete('cascade');
+            $table->integer('rating');
             $table->text('comment')->nullable();
             $table->text('admin_reply')->nullable();
             $table->timestamp('replied_at')->nullable();
             $table->timestamps();
-            
-            $table->unique(['user_id', 'menu_id', 'order_id']);
+    
+            $table->unique(['user_id', 'menu_id']);
         });
     }
 

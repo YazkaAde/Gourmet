@@ -277,4 +277,22 @@ class Reservation extends Model
         
         return $diffInHours >= 1 && $this->isWithinBusinessHours($endTime);
     }
+
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    public function canBeReviewed()
+    {
+        return $this->status === 'completed' && 
+               $this->payments()->where('status', 'paid')->exists();
+    }
+
+    public function getReviewableMenus()
+    {
+        return $this->orderItems->map(function ($orderItem) {
+            return $orderItem->menu;
+        })->unique('id');
+    }
 }

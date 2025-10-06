@@ -148,11 +148,7 @@
                         <div class="space-y-4">
                             @foreach($order->orderItems as $orderItem)
                             @php
-                                $userReview = $orderItem->menu->reviews
-                                    ->where('user_id', auth()->id())
-                                    ->where('order_id', $order->id)
-                                    ->where('menu_id', $orderItem->menu_id)
-                                    ->first();
+                                $userReview = \App\Models\Review::getUserReviewForMenu(auth()->id(), $orderItem->menu_id);
                             @endphp
                             
                             <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -174,25 +170,27 @@
                                                 ✩ Write Review
                                             </a>
                                         @else
-                                            <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
-                                                ✓ Reviewed ({{ $userReview->rating }}★)
-                                            </span>
-                                            <form action="{{ route('customer.reviews.destroy', $userReview) }}" method="POST" class="inline ml-2">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" 
-                                                        class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm hover:bg-red-200"
-                                                        onclick="return confirm('Are you sure you want to delete your review?')">
-                                                    Delete
-                                                </button>
-                                            </form>
+                                            <div class="flex items-center gap-2">
+                                                <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                                                    ✓ Reviewed ({{ $userReview->rating }}★)
+                                                </span>
+                                                <form action="{{ route('customer.reviews.destroy', $userReview) }}" method="POST" class="inline">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" 
+                                                            class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm hover:bg-red-200"
+                                                            onclick="return confirm('Are you sure you want to delete your review?')">
+                                                        Delete
+                                                    </button>
+                                                </form>
+                                            </div>
                                         @endif
                                     @else
                                         <span class="text-sm text-gray-500">Complete payment to review</span>
                                     @endif
                                 </div>
                             </div>
-                        @endforeach
+                            @endforeach
                         </div>
                     </div>
                     @endif

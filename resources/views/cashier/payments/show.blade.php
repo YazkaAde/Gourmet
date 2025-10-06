@@ -122,6 +122,10 @@
                                     <p class="font-medium">{{ $payment->reservation->reservation_time }}</p>
                                 </div>
                                 <div>
+                                    <p class="text-sm text-gray-600">End Time</p>
+                                    <p class="font-medium">{{ $payment->reservation->end_time }}</p>
+                                </div>
+                                <div>
                                     <p class="text-sm text-gray-600">Reservation Status</p>
                                     <span class="px-3 py-1 rounded-full text-sm font-medium 
                                         @if($payment->reservation->status == 'confirmed') bg-green-100 text-green-800

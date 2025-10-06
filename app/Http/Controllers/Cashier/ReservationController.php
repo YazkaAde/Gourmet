@@ -25,7 +25,7 @@ class ReservationController extends Controller
 
     public function show(Reservation $reservation)
     {
-        $reservation->load('user', 'table', 'orders.carts.menu', 'payments', 'preOrderItems.menu');
+        $reservation->load('user', 'table', 'orders.orderItems.menu', 'payments', 'preOrderItems.menu');
         
         return view('cashier.reservations.show', compact('reservation'));
     }

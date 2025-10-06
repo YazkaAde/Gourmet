@@ -23,15 +23,18 @@ class ReservationController extends Controller
 
     public function store(Request $request)
     {
+        Carbon::setLocale('id');
+        date_default_timezone_set('Asia/Jakarta');
+        
         $validated = $request->validate([
             'reservation_date' => 'required|date|after:today',
             'reservation_time' => [
                 'required',
                 'date_format:H:i',
                 function ($attribute, $value, $fail) {
-                    $time = Carbon::createFromFormat('H:i', $value);
-                    $start = Carbon::createFromTime(9, 0);
-                    $end = Carbon::createFromTime(21, 0);
+                    $time = Carbon::createFromFormat('H:i', $value, 'Asia/Jakarta');
+                    $start = Carbon::createFromTime(9, 0, 0, 'Asia/Jakarta');
+                    $end = Carbon::createFromTime(21, 0, 0, 'Asia/Jakarta');
                     
                     if ($time->lt($start) || $time->gt($end)) {
                         $fail('Waktu reservasi hanya tersedia dari jam 09:00 sampai 21:00');
@@ -42,16 +45,42 @@ class ReservationController extends Controller
                 'required',
                 'date_format:H:i',
                 function ($attribute, $value, $fail) use ($request) {
-                    $startTime = Carbon::createFromFormat('H:i', $request->reservation_time);
-                    $endTime = Carbon::createFromFormat('H:i', $value);
-                    $businessEnd = Carbon::createFromTime(21, 0); // 21:00
-                    
-                    if ($endTime->diffInHours($startTime) < 1) {
-                        $fail('Waktu berakhir reservasi harus minimal 1 jam dari waktu mulai');
-                    }
-                    
-                    if ($endTime->gt($businessEnd)) {
-                        $fail('Waktu berakhir reservasi tidak boleh melebihi jam 21:00');
+                    try {
+                        $startTime = $request->reservation_time;
+                        $endTime = $value;
+                        
+                        // Debug log
+                        \Log::info('Time Validation', [
+                            'start_time' => $startTime,
+                            'end_time' => $endTime,
+                            'user_id' => auth()->id()
+                        ]);
+                        
+                        list($startHour, $startMinute) = explode(':', $startTime);
+                        list($endHour, $endMinute) = explode(':', $endTime);
+                        
+                        $startTotalMinutes = ($startHour * 60) + $startMinute;
+                        $endTotalMinutes = ($endHour * 60) + $endMinute;
+                        
+                        $diffInMinutes = $endTotalMinutes - $startTotalMinutes;
+                        
+                        \Log::info('Time Calculation', [
+                            'start_total_minutes' => $startTotalMinutes,
+                            'end_total_minutes' => $endTotalMinutes,
+                            'diff_in_minutes' => $diffInMinutes
+                        ]);
+                        
+                        if ($diffInMinutes < 60) {
+                            $fail('Waktu berakhir reservasi harus minimal 1 jam dari waktu mulai');
+                        }
+                        
+                        if ($endTotalMinutes > (21 * 60)) {
+                            $fail('Waktu berakhir reservasi tidak boleh melebihi jam 21:00');
+                        }
+                        
+                    } catch (\Exception $e) {
+                        \Log::error('Time validation error: ' . $e->getMessage());
+                        $fail('Terjadi kesalahan dalam validasi waktu');
                     }
                 },
             ],
@@ -174,14 +203,20 @@ class ReservationController extends Controller
                 function ($attribute, $value, $fail) use ($request) {
                     $startTime = Carbon::createFromFormat('H:i', $request->reservation_time);
                     $endTime = Carbon::createFromFormat('H:i', $value);
-                    $businessEnd = Carbon::createFromTime(21, 0);
                     
-                    if ($endTime->diffInHours($startTime) < 1) {
+                    $diffInMinutes = $endTime->diffInMinutes($startTime);
+                    
+                    if ($diffInMinutes < 60) {
                         $fail('Waktu berakhir reservasi harus minimal 1 jam dari waktu mulai');
                     }
                     
+                    $businessEnd = Carbon::createFromTime(21, 0);
                     if ($endTime->gt($businessEnd)) {
                         $fail('Waktu berakhir reservasi tidak boleh melebihi jam 21:00');
+                    }
+                    
+                    if ($endTime->lte($startTime)) {
+                        $fail('Waktu berakhir harus setelah waktu mulai');
                     }
                 },
             ],

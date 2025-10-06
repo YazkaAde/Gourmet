@@ -63,8 +63,12 @@
                             <p class="font-medium">{{ $reservation->reservation_date->format('M d, Y') }}</p>
                         </div>
                         <div>
-                            <p class="text-sm text-gray-600">Reservation Time</p>
+                            <p class="text-sm text-gray-600">Reservation Start</p>
                             <p class="font-medium">{{ $reservation->reservation_time }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Reservation End</p>
+                            <p class="font-medium">{{ $reservation->end_time }}</p>
                         </div>
                         <div>
                             <p class="text-sm text-gray-600">Created At</p>
@@ -209,21 +213,21 @@
                             <div class="border-t pt-4">
                                 <h5 class="font-medium mb-2">Items:</h5>
                                 <div class="space-y-2">
-                                    @foreach($order->carts as $cartItem)
+                                    @foreach($order->orderItems as $orderItem)
                                     <div class="flex justify-between items-center">
                                         <div class="flex items-center">
-                                            @if($cartItem->menu->image_url)
-                                                <img src="{{ asset('storage/' . $cartItem->menu->image_url) }}" 
-                                                    alt="{{ $cartItem->menu->name }}"
+                                            @if($orderItem->menu->image_url)
+                                                <img src="{{ asset('storage/' . $orderItem->menu->image_url) }}" 
+                                                    alt="{{ $orderItem->menu->name }}"
                                                     class="w-10 h-10 object-cover rounded mr-3"
                                                     onerror="this.style.display='none'">
                                             @endif
                                             <div>
-                                                <p class="text-sm font-medium">{{ $cartItem->menu->name }}</p>
-                                                <p class="text-xs text-gray-600">Qty: {{ $cartItem->quantity }} × Rp {{ number_format($cartItem->menu->price, 0) }}</p>
+                                                <p class="text-sm font-medium">{{ $orderItem->menu->name }}</p>
+                                                <p class="text-xs text-gray-600">Qty: {{ $orderItem->quantity }} × Rp {{ number_format($orderItem->price, 0) }}</p>
                                             </div>
                                         </div>
-                                        <p class="text-sm font-medium">Rp {{ number_format($cartItem->menu->price * $cartItem->quantity, 0) }}</p>
+                                        <p class="text-sm font-medium">Rp {{ number_format($orderItem->price * $orderItem->quantity, 0) }}</p>
                                     </div>
                                     @endforeach
                                 </div>

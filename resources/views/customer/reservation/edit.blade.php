@@ -183,7 +183,7 @@
                             </a>
                             <button type="submit" 
                                     class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700">
-                                Update Reservasi
+                                Update Reservation
                             </button>
                         </div>
                     </form>
@@ -193,32 +193,32 @@
             <!-- Current Reservation Details -->
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mt-6">
                 <div class="p-6 bg-white border-b border-gray-200">
-                    <h3 class="text-lg font-semibold mb-4">Detail Reservasi Saat Ini</h3>
+                    <h3 class="text-lg font-semibold mb-4">Reservation Detail</h3>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <p class="text-sm text-gray-600">Tanggal</p>
+                            <p class="text-sm text-gray-600">Date</p>
                             <p class="font-medium">{{ $reservation->reservation_date->format('M d, Y') }}</p>
                         </div>
                         <div>
-                            <p class="text-sm text-gray-600">Waktu</p>
+                            <p class="text-sm text-gray-600">Reservation Start</p>
                             <p class="font-medium">{{ $reservation->reservation_time }}</p>
                         </div>
                         <div>
-                            <p class="text-sm text-gray-600">Waktu Berakhir</p>
+                            <p class="text-sm text-gray-600">Reservation End</p>
                             <p class="font-medium">{{ $reservation->end_time }}</p>
                         </div>
                         <div>
-                            <p class="text-sm text-gray-600">Jumlah Tamu</p>
+                            <p class="text-sm text-gray-600">Guest Count</p>
                             <p class="font-medium">{{ $reservation->guest_count }} guests</p>
                         </div>
                         <div>
-                            <p class="text-sm text-gray-600">Meja</p>
-                            <p class="font-medium">Meja {{ $reservation->table_number }} ({{ $reservation->table_capacity }} orang)</p>
+                            <p class="text-sm text-gray-600">Table Number</p>
+                            <p class="font-medium">Table {{ $reservation->table_number }} ({{ $reservation->table_capacity }} people)</p>
                         </div>
                         @if($reservation->notes)
                         <div class="md:col-span-2">
-                            <p class="text-sm text-gray-600">Catatan</p>
+                            <p class="text-sm text-gray-600">Notes</p>
                             <p class="font-medium">{{ $reservation->notes }}</p>
                         </div>
                         @endif
@@ -228,57 +228,72 @@
         </div>
     </div>
 
+    @if(isset($menus) && $menus->count() > 0)
     @include('customer.reservation.partials.add-menu-modal', ['reservation' => $reservation, 'menus' => $menus])
+    @else
+        <div class="hidden">
+            <div id="addMenuModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
+                <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                    <div class="mt-3 text-center">
+                        <p class="text-gray-500">Menu data not available</p>
+                        <button type="button" onclick="closeAddMenuModal()" 
+                                class="mt-3 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 
     <script>
-            document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function() {
         const menuItemsContainer = document.getElementById('menu-items-container');
         let menuItemIndex = {{ count(old('menu_items', [])) }};
+        const tableSelect = document.getElementById('table_number');
+        const reservationDateInput = document.getElementById('reservation_date');
+        const reservationTimeInput = document.getElementById('reservation_time');
+        const endTimeInput = document.getElementById('end_time');
 
-        // Initialize menu items event listeners dengan event delegation
+        // Initialize menu items event listeners
         function initializeMenuItems() {
-            // Gunakan event delegation untuk menangani klik pada seluruh container
             menuItemsContainer.addEventListener('click', function(e) {
-                // Handle tombol tambah
                 if (e.target.classList.contains('increase-quantity')) {
                     const index = e.target.getAttribute('data-index');
                     const input = document.querySelector(`.quantity-input[data-index="${index}"]`);
                     if (input) {
                         input.value = parseInt(input.value) + 1;
                         updateItemTotal(index);
-                        calculateReservationFee();
+                        calculateTotal();
                     }
                 }
                 
-                // Handle tombol kurang
                 if (e.target.classList.contains('decrease-quantity')) {
                     const index = e.target.getAttribute('data-index');
                     const input = document.querySelector(`.quantity-input[data-index="${index}"]`);
                     if (input && parseInt(input.value) > 1) {
                         input.value = parseInt(input.value) - 1;
                         updateItemTotal(index);
-                        calculateReservationFee();
+                        calculateTotal();
                     }
                 }
                 
-                // Handle tombol remove
                 if (e.target.classList.contains('remove-menu-item')) {
                     const index = e.target.getAttribute('data-index');
                     const item = document.querySelector(`.menu-item[data-index="${index}"]`);
                     if (item) {
                         item.remove();
-                        calculateReservationFee();
+                        calculateTotal();
                         updateEmptyState();
                     }
                 }
             });
 
-            // Event listener untuk input quantity manual
             menuItemsContainer.addEventListener('input', function(e) {
                 if (e.target.classList.contains('quantity-input')) {
                     const index = e.target.getAttribute('data-index');
                     updateItemTotal(index);
-                    calculateReservationFee();
+                    calculateTotal();
                 }
             });
         }
@@ -286,15 +301,17 @@
         // Update item total display
         function updateItemTotal(index) {
             const input = document.querySelector(`.quantity-input[data-index="${index}"]`);
+            if (!input) return;
+            
             const price = parseFloat(input.getAttribute('data-price'));
-            const quantity = parseInt(input.value);
+            const quantity = parseInt(input.value) || 0;
             const total = price * quantity;
             const totalElement = document.querySelector(`.item-total[data-index="${index}"]`);
             if (totalElement) {
                 totalElement.textContent = 'Rp ' + total.toLocaleString('id-ID');
             }
         }
-        
+
         // Update empty state
         function updateEmptyState() {
             const menuItems = document.querySelectorAll('.menu-item');
@@ -314,6 +331,39 @@
             }
         }
 
+        // Calculate total reservation cost
+        function calculateTotal() {
+            const selectedOption = tableSelect.options[tableSelect.selectedIndex];
+            let tableFee = 0;
+            
+            if (selectedOption && selectedOption.value) {
+                const capacity = parseInt(selectedOption.getAttribute('data-capacity'));
+                tableFee = capacity * 10000;
+                
+                if (capacity >= 8) {
+                    tableFee = tableFee * 0.8;
+                }
+            }
+            
+            let menuTotal = 0;
+            document.querySelectorAll('.menu-item').forEach(item => {
+                const quantityInput = item.querySelector('.quantity-input');
+                if (quantityInput) {
+                    const price = parseFloat(quantityInput.getAttribute('data-price'));
+                    const quantity = parseInt(quantityInput.value) || 0;
+                    menuTotal += price * quantity;
+                }
+            });
+            
+            const totalAmount = tableFee + menuTotal;
+            const downPayment = totalAmount * 0.1;
+            
+            document.getElementById('reservation-fee').textContent = 'Rp ' + tableFee.toLocaleString('id-ID');
+            document.getElementById('menu-total').textContent = 'Rp ' + menuTotal.toLocaleString('id-ID');
+            document.getElementById('total-amount').textContent = 'Rp ' + totalAmount.toLocaleString('id-ID');
+            document.getElementById('down-payment').textContent = 'Rp ' + downPayment.toLocaleString('id-ID');
+        }
+
         // Function to add menu item from modal
         window.addMenuItemToForm = function(menuId, menuName, menuPrice, menuImage, quantity = 1) {
             const emptyState = document.getElementById('empty-state');
@@ -321,16 +371,17 @@
                 emptyState.remove();
             }
             
-            // Check if item already exists
             const existingInput = document.querySelector(`input[value="${menuId}"][name*="menu_id"]`);
             if (existingInput) {
                 const existingIndex = existingInput.name.match(/\[(\d+)\]/)[1];
                 const quantityInput = document.querySelector(`.quantity-input[data-index="${existingIndex}"]`);
-                const currentQuantity = parseInt(quantityInput.value);
-                quantityInput.value = currentQuantity + quantity;
-                updateItemTotal(existingIndex);
-                calculateReservationFee();
-                showNotification('Menu item quantity updated!', 'success');
+                if (quantityInput) {
+                    const currentQuantity = parseInt(quantityInput.value) || 0;
+                    quantityInput.value = currentQuantity + quantity;
+                    updateItemTotal(existingIndex);
+                    calculateTotal();
+                    showNotification('Menu item quantity updated!', 'success');
+                }
                 return;
             }
             
@@ -384,13 +435,99 @@
             
             menuItemsContainer.insertAdjacentHTML('beforeend', menuItemHtml);
             
-            calculateReservationFee();
+            calculateTotal();
             showNotification('Menu item added successfully!', 'success');
         }
 
-        // Initialize existing menu items
+        function validateTimeRange() {
+            const startTime = reservationTimeInput.value;
+            const endTime = endTimeInput.value;
+            
+            if (!startTime || !endTime) {
+                endTimeInput.setCustomValidity('');
+                return true;
+            }
+            
+            const [startHours, startMinutes] = startTime.split(':').map(Number);
+            const [endHours, endMinutes] = endTime.split(':').map(Number);
+            
+            const startTotalMinutes = startHours * 60 + startMinutes;
+            const endTotalMinutes = endHours * 60 + endMinutes;
+            
+            const diffInMinutes = endTotalMinutes - startTotalMinutes;
+            
+            console.log('Start:', startTime, 'End:', endTime, 'Diff:', diffInMinutes, 'minutes');
+            
+            if (diffInMinutes < 60) {
+                endTimeInput.setCustomValidity('Waktu berakhir harus minimal 1 jam dari waktu mulai');
+                endTimeInput.classList.add('border-red-500', 'ring-2', 'ring-red-200');
+                return false;
+            } else {
+                endTimeInput.setCustomValidity('');
+                endTimeInput.classList.remove('border-red-500', 'ring-2', 'ring-red-200');
+                return true;
+            }
+        }
+
+        function autoSetEndTime() {
+            if (reservationTimeInput.value && !endTimeInput.value) {
+                const startTime = reservationTimeInput.value;
+                const [hours, minutes] = startTime.split(':').map(Number);
+                
+                let endHours = hours + 1;
+                let endMinutes = minutes;
+                
+                if (endHours >= 24) {
+                    endHours = 23;
+                    endMinutes = 59;
+                }
+                
+                const endTimeString = `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+                
+                if (endTimeString <= '21:00') {
+                    endTimeInput.value = endTimeString;
+                } else {
+                    endTimeInput.value = '21:00';
+                }
+                
+                setTimeout(() => validateTimeRange(), 100);
+            }
+        }
+
+        reservationTimeInput.addEventListener('change', function() {
+            console.log('Start time changed:', this.value);
+            
+            if (!endTimeInput.value) {
+                autoSetEndTime();
+            } else {
+                validateTimeRange();
+            }
+        });
+
+        endTimeInput.addEventListener('change', function() {
+            console.log('End time changed:', this.value);
+            validateTimeRange();
+        });
+
+        endTimeInput.addEventListener('input', function() {
+            this.classList.remove('border-red-500', 'ring-2', 'ring-red-200');
+        });
+
+        document.getElementById('reservation-form').addEventListener('submit', function(e) {
+            if (!validateTimeRange()) {
+                e.preventDefault();
+                showNotification('Harap periksa waktu reservasi Anda. Waktu berakhir harus minimal 1 jam dari waktu mulai.', 'error');
+                endTimeInput.focus();
+            }
+        });
+
         initializeMenuItems();
         updateEmptyState();
+        calculateTotal();
+        
+        setTimeout(() => {
+            validateTimeRange();
+        }, 500);
     });
 
     function calculateReservationFee() {

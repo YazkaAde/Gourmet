@@ -141,6 +141,7 @@ Route::middleware(['auth', 'role:customer', CheckBlacklist::class])->group(funct
 
     // Customer Review Routes
     Route::prefix('reviews')->name('customer.reviews.')->group(function() {
+        // Review untuk order biasa
         Route::get('/order/{order}/menu/{menu}/create', [\App\Http\Controllers\Customer\ReviewController::class, 'create'])
             ->name('create')
             ->whereNumber(['order', 'menu']);
@@ -148,6 +149,15 @@ Route::middleware(['auth', 'role:customer', CheckBlacklist::class])->group(funct
         Route::post('/order/{order}/menu/{menu}', [\App\Http\Controllers\Customer\ReviewController::class, 'store'])
             ->name('store')
             ->whereNumber(['order', 'menu']);
+        
+        // Review untuk reservasi
+        Route::get('/reservation/{reservation}/menu/{menu}/create', [\App\Http\Controllers\Customer\ReviewController::class, 'createFromReservation'])
+            ->name('create-from-reservation')
+            ->whereNumber(['reservation', 'menu']);
+        
+        Route::post('/reservation/{reservation}/menu/{menu}', [\App\Http\Controllers\Customer\ReviewController::class, 'storeFromReservation'])
+            ->name('store-from-reservation')
+            ->whereNumber(['reservation', 'menu']);
         
         Route::delete('/{review}', [\App\Http\Controllers\Customer\ReviewController::class, 'destroy'])
             ->name('destroy')

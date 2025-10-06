@@ -36,6 +36,7 @@
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Time</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Table</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guests</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -50,6 +51,9 @@
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         {{ $reservation->reservation_date->format('M d, Y') }}<br>
                                         {{ $reservation->reservation_time }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        {{ $reservation->end_time }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">Table {{ $reservation->table_number }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap">{{ $reservation->guest_count }} guests</td>

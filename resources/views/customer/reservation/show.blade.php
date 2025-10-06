@@ -112,11 +112,11 @@
                             <p class="font-medium">{{ $reservation->reservation_date->format('M d, Y') }}</p>
                         </div>
                         <div>
-                            <p class="text-sm text-gray-600">Reservation Time</p>
+                            <p class="text-sm text-gray-600">Reservation Start</p>
                             <p class="font-medium">{{ $reservation->reservation_time }}</p>
                         </div>
                         <div>
-                            <p class="text-sm text-gray-600">Waktu Berakhir</p>
+                            <p class="text-sm text-gray-600">Reservation End</p>
                             <p class="font-medium">{{ $reservation->end_time }}</p>
                         </div>
                         <div>
@@ -312,6 +312,75 @@
                     </a>
                 </div>
             </div>
+            </div>
+            @endif
+
+            {{-- Reviews Section untuk Completed Reservation --}}
+            @if($reservation->status == 'completed' && $reservation->payments()->where('status', 'paid')->exists())
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mt-6">
+                <div class="p-6 bg-white border-b border-gray-200">
+                    <h3 class="text-lg font-semibold mb-4">Menu Reviews</h3>
+                    <div class="space-y-4">
+                        @foreach($reservation->orderItems->groupBy('menu_id') as $menuItems)
+                        @php 
+                            $item = $menuItems->first(); 
+                            $userReview = \App\Models\Review::getUserReviewForMenu(
+                                auth()->id(), 
+                                $item->menu_id, 
+                                null, 
+                                $reservation->id
+                            );
+                        @endphp
+                        
+                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div class="flex items-center">
+                                @if($item->menu->image_url)
+                                    <img src="{{ asset('storage/' . $item->menu->image_url) }}" 
+                                        alt="{{ $item->menu->name }}"
+                                        class="w-12 h-12 object-cover rounded mr-4"
+                                        onerror="this.style.display='none'">
+                                @endif
+                                <div>
+                                    <span class="font-medium">{{ $item->menu->name }}</span>
+                                    <p class="text-sm text-gray-600">Quantity: {{ $menuItems->sum('quantity') }}</p>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                @if(!$userReview)
+                                    <a href="{{ route('customer.reviews.create-from-reservation', ['reservation' => $reservation, 'menu' => $item->menu]) }}" 
+                                    class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm transition-colors">
+                                        ✩ Write Review
+                                    </a>
+                                @else
+                                    <div class="flex items-center gap-3">
+                                        <div class="text-center">
+                                            <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                                                ✓ Reviewed
+                                            </span>
+                                            <div class="flex items-center justify-center mt-1">
+                                                @for($i = 1; $i <= 5; $i++)
+                                                    <span class="text-sm {{ $i <= $userReview->rating ? 'text-yellow-400' : 'text-gray-300' }}">★</span>
+                                                @endfor
+                                                <span class="text-xs text-gray-600 ml-1">({{ $userReview->rating }}/5)</span>
+                                            </div>
+                                        </div>
+                                        <form action="{{ route('customer.reviews.destroy', $userReview) }}" method="POST" class="inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" 
+                                                    class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm hover:bg-red-200 transition-colors"
+                                                    onclick="return confirm('Are you sure you want to delete your review?')">
+                                                Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
             </div>
             @endif
 

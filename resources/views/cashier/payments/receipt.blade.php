@@ -77,6 +77,7 @@
                 @elseif($payment->reservation_id && $payment->reservation && $payment->reservation->user)
                     <p><span class="font-medium">Name:</span> {{ $payment->reservation->user->name }}</p>
                     <p><span class="font-medium">Table:</span> {{ $payment->reservation->table_number ?? 'N/A' }}</p>
+                    <p><span class="font-medium">Time:</span> {{ $payment->reservation->reservation_time }} - {{ $payment->reservation->end_time }}</p>
                 @else
                     <p><span class="font-medium">Name:</span> Customer information not available</p>
                 @endif
