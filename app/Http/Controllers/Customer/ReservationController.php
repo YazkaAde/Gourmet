@@ -173,7 +173,9 @@ class ReservationController extends Controller
         }
 
         $tables = NumberTable::all();
-        return view('customer.reservation.edit', compact('reservation', 'tables'));
+        $menus = \App\Models\Menu::all();
+        
+        return view('customer.reservation.edit', compact('reservation', 'tables', 'menus'));
     }
 
     public function update(Request $request, Reservation $reservation)
@@ -201,22 +203,41 @@ class ReservationController extends Controller
                 'required',
                 'date_format:H:i',
                 function ($attribute, $value, $fail) use ($request) {
-                    $startTime = Carbon::createFromFormat('H:i', $request->reservation_time);
-                    $endTime = Carbon::createFromFormat('H:i', $value);
-                    
-                    $diffInMinutes = $endTime->diffInMinutes($startTime);
-                    
-                    if ($diffInMinutes < 60) {
-                        $fail('Waktu berakhir reservasi harus minimal 1 jam dari waktu mulai');
-                    }
-                    
-                    $businessEnd = Carbon::createFromTime(21, 0);
-                    if ($endTime->gt($businessEnd)) {
-                        $fail('Waktu berakhir reservasi tidak boleh melebihi jam 21:00');
-                    }
-                    
-                    if ($endTime->lte($startTime)) {
-                        $fail('Waktu berakhir harus setelah waktu mulai');
+                    try {
+                        $startTime = $request->reservation_time;
+                        $endTime = $value;
+                        
+                        \Log::info('Time Validation Update', [
+                            'start_time' => $startTime,
+                            'end_time' => $endTime,
+                            'user_id' => auth()->id()
+                        ]);
+                        
+                        list($startHour, $startMinute) = explode(':', $startTime);
+                        list($endHour, $endMinute) = explode(':', $endTime);
+                        
+                        $startTotalMinutes = ($startHour * 60) + $startMinute;
+                        $endTotalMinutes = ($endHour * 60) + $endMinute;
+                        
+                        $diffInMinutes = $endTotalMinutes - $startTotalMinutes;
+                        
+                        \Log::info('Time Calculation Update', [
+                            'start_total_minutes' => $startTotalMinutes,
+                            'end_total_minutes' => $endTotalMinutes,
+                            'diff_in_minutes' => $diffInMinutes
+                        ]);
+                        
+                        if ($diffInMinutes < 60) {
+                            $fail('Waktu berakhir reservasi harus minimal 1 jam dari waktu mulai');
+                        }
+                        
+                        if ($endTotalMinutes > (21 * 60)) {
+                            $fail('Waktu berakhir reservasi tidak boleh melebihi jam 21:00');
+                        }
+                        
+                    } catch (\Exception $e) {
+                        \Log::error('Time validation error in update: ' . $e->getMessage());
+                        $fail('Terjadi kesalahan dalam validasi waktu');
                     }
                 },
             ],

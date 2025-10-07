@@ -115,28 +115,69 @@
                 {{ $menus->links() }}
             </div>
 
-            <!-- Floating Cart Button -->
-            <div class="fixed bottom-8 right-8 flex flex-col gap-3 z-50">
-                <a href="{{ route('customer.cart.index') }}" 
-                    class="bg-primary-600 text-white flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-sm shadow-lg hover:bg-primary-700 transition transform hover:scale-105">
-                    <svg class="w-6 h-6 text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M4 4a1 1 0 0 1 1-1h1.5a1 1 0 0 1 .979.796L7.939 6H19a1 1 0 0 1 .979 1.204l-1.25 6a1 1 0 0 1-.979.796H9.604l-.208 1H17a3 3 0 1 1-2.83 2h-2.34a3 3 0 1 1-4.009-1.76L5.686 5H5a1 1 0 0 1-1-1Z"/>
-                    </svg>
-                    Cart (<span id="cart-count">{{ auth()->user()->carts()->whereNull('order_id')->count() }}</span>)
-                </a>
+            <!-- Cart Button -->
+            <a href="{{ route('customer.cart.index') }}" 
+                class="fixed right-0 top-1/2 transform -translate-y-1/2 floating-btn bg-primary-600 text-white flex items-center justify-end overflow-hidden transition-all duration-300 ease-in-out w-12 hover:w-44 rounded-l-lg shadow-lg group z-50"
+                id="cart-btn">
+                <div class="flex items-center">
+                    <span class="whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 mr-2 font-semibold">
+                        Cart (<span id="cart-count">{{ auth()->user()->carts()->whereNull('order_id')->count() }}</span>)
+                    </span>
+                    <div class="bg-primary-600 p-3 rounded-l-lg">
+                        <svg class="w-6 h-6 text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M4 4a1 1 0 0 1 1-1h1.5a1 1 0 0 1 .979.796L7.939 6H19a1 1 0 0 1 .979 1.204l-1.25 6a1 1 0 0 1-.979.796H9.604l-.208 1H17a3 3 0 1 1-2.83 2h-2.34a3 3 0 1 1-4.009-1.76L5.686 5H5a1 1 0 0 1-1-1Z"/>
+                        </svg>
+                    </div>
+                </div>
+            </a>
 
-                <!-- Tombol Reservasi -->
-                <a href="{{ route('customer.reservations.create') }}" 
-                    class="bg-green-600 text-white flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-sm shadow-lg hover:bg-green-700 transition transform hover:scale-105">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                    </svg>
-                    Reservasi
-                </a>
-            </div>
+            <!-- Reservation Button -->
+            <a href="{{ route('customer.reservations.create') }}" 
+                class="fixed right-0 top-1/2 transform -translate-y-1/2 mt-16 floating-btn bg-green-600 text-white flex items-center justify-end overflow-hidden transition-all duration-300 ease-in-out w-12 hover:w-44 rounded-l-lg shadow-lg group z-50"
+                id="reservation-btn">
+                <div class="flex items-center">
+                    <span class="whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 mr-2 font-semibold">
+                        Reservasi
+                    </span>
+                    <div class="bg-green-600 p-3 rounded-l-lg">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </a>
 
         </div>
     </div>
+
+    <style>
+        .floating-btn {
+            position: fixed;
+            transition: all 0.3s ease-in-out;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .floating-btn:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            width: 11rem !important;
+        }
+
+        #cart-btn {
+            margin-top: 0 !important;
+        }
+
+        #reservation-btn {
+            margin-top: 2rem !important;
+        }
+
+        .floating-btn {
+            width: 3rem;
+        }
+
+        .floating-btn:hover {
+            width: 9rem !important;
+        }
+    </style>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -144,52 +185,52 @@
                 const min = parseInt(input.getAttribute('min')) || 1;
                 const currentValue = parseInt(input.value) || min;
                 const decrementBtn = input.parentElement.querySelector('.quantity-decrement');
-        
+
                 if (isNaN(currentValue) || currentValue < min) {
                     input.value = min;
                 }
-        
+
                 decrementBtn.disabled = parseInt(input.value) <= min;
             }
-        
+
             document.addEventListener('click', function(e) {
                 const incrementBtn = e.target.closest('.quantity-increment');
                 const decrementBtn = e.target.closest('.quantity-decrement');
-        
+
                 if (incrementBtn) {
                     const input = incrementBtn.parentElement.querySelector('.quantity-input');
                     input.value = parseInt(input.value) + 1;
                     updateQuantityControl(input);
                 }
-        
+
                 if (decrementBtn) {
                     const input = decrementBtn.parentElement.querySelector('.quantity-input');
                     const min = parseInt(input.getAttribute('min')) || 1;
                     const currentValue = parseInt(input.value) || min;
-        
+
                     if (currentValue > min) {
                         input.value = currentValue - 1;
                         updateQuantityControl(input);
                     }
                 }
             });
-        
+
             document.addEventListener('input', function(e) {
                 if (e.target.classList.contains('quantity-input')) {
                     updateQuantityControl(e.target);
                 }
             });
-        
+
             document.addEventListener('change', function(e) {
                 if (e.target.classList.contains('quantity-input')) {
                     updateQuantityControl(e.target);
                 }
             });
-        
+
             document.querySelectorAll('.quantity-input').forEach(function(input) {
                 updateQuantityControl(input);
             });
-        
+
             const successNotification = document.getElementById('success-notification');
             if (successNotification) {
                 setTimeout(() => {
@@ -197,6 +238,31 @@
                     setTimeout(() => successNotification.remove(), 300);
                 }, 3000);
             }
+
+            const cartBtn = document.getElementById('cart-btn');
+            const reservationBtn = document.getElementById('reservation-btn');
+
+            function setInitialPositions() {
+                cartBtn.style.top = '50%';
+                cartBtn.style.transform = 'translateY(-50%)';
+                
+                reservationBtn.style.top = 'calc(50% + 4rem)';
+                reservationBtn.style.transform = 'translateY(-50%)';
+            }
+
+            setInitialPositions();
+
+            [cartBtn, reservationBtn].forEach(btn => {
+                btn.addEventListener('mouseenter', function() {
+                    this.style.width = '11rem';
+                });
+
+                btn.addEventListener('mouseleave', function() {
+                    this.style.width = '3rem';
+                });
+            });
+
+            window.addEventListener('resize', setInitialPositions);
         });
     </script>
 </x-app-layout>

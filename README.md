@@ -50,23 +50,26 @@ Sebuah aplikasi yang dapat digunakan untuk pemesanan makanan dan minuman pada se
 
 # metode pembayaran
 - jika user memilih cash maka untuk inputan nominal tidak muncul
-- jika user memilih Transfer bank maka akan muncul inputan bank yang dipilih dan juga nomer rekening dan nominal
-- jika user memilih Debit Card maka akan muncul inputan debit yang dipilih dan juga nomer rekening dan nominal
-- jika user memilih Qris maka akan muncul inputan Qris yang dipilih dan juga nomer qris dan nominal
+- jika user memilih Transfer bank maka akan muncul inputan bank yang dipilih dan juga nomer rekening
+- jika user memilih Debit Card maka akan muncul inputan debit yang dipilih dan juga nomer rekening
+- jika user memilih Qris maka akan muncul inputan Qris yang dipilih dan juga nomer qris
 
 operasional
 pengembangan
 marketing
 manajemen
 
+jika user status order masih pending user masih bisa menambah dan mengurangi menu, jika sudah complete maka semua tombol input di di hidden dan ketika di klik muncul notifikasi
+
 target
-1. membuat tampilan untuk add-menu untuk reservasi
+1. membuat tampilan untuk add-menu untuk reservasi V
 2. merubah tampilan payment untuk reservasi dan order dengan metode pembayaran
 3. memperbaiki tampilan sidebar
 4. membuat dashboard untuk cashier
 5. menyelesaikan dashboard admin
 6. menyelesaikan logic untuk payment reservasi
 7. membuat laporan penjualan
+8. membuat kolom note untuk order menu biasa
 
 
 terimakasih telah membantu saya sejauh ini. sekarang bisakah kamu membuat bagian untuk menampilkan reservation proof yang mencakup
@@ -75,4 +78,6 @@ terimakasih telah membantu saya sejauh ini. sekarang bisakah kamu membuat bagian
 3. tanggal dan waktu pemesanan
 4. nomor reservasi
 5. informasi pembayaran = jumlah masing-masing harga, total harga dan sisa uang yang belum dibayarkan
+
+memperbaiki recipe dari reservasi, menu yang dipesan tidak tampil
 
