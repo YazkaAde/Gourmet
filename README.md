@@ -18,9 +18,8 @@ Sebuah aplikasi yang dapat digunakan untuk pemesanan makanan dan minuman pada se
 - Menambah/mengubah/menghapus daftar category (v)
 - Menambah/mengubah/menghapus meja restoran (v)
 - Menambah/mengubah/menghapus user cashier (v)
-- Menambah/mengubah/menghapus flyer promo
 - Memblacklist/unblacklist user customer (v)
-- Melihat rating masing-masing menu
+- Melihat rating masing-masing menu (v)
 
 # Cashier/Kasir
 - Melihat harga dan total harga pesanan (v)
@@ -30,19 +29,18 @@ Sebuah aplikasi yang dapat digunakan untuk pemesanan makanan dan minuman pada se
 - Konfirmasi terima pesanan (v)
 - Mengubah status pesanan "siap saji" (v)
 - Melihat/mengubah status pembayaran(v)
-- Konfirmasi reservasi
+- Konfirmasi reservasi (v)
 
 # Customer/Pembeli
 - Melihat jumlah menu dan jumlah menu dari masing-masing kategori (v)
-- Melihat flyer promo restoran
-- Melihat menu, harga dan rating
+- Melihat menu, harga dan rating (v)
 - Memilih menu (v)
 - Melihat total harga pesanan (v)
 - Menambahkan barang ke keranjang (v)
 - Membuat/mengedit/hapus pesanan (v)
-- Membuat/update/hapus Reservasi
-- Melihat rating masing-masing menu
-- Memberikan rating kepada menu
+- Membuat/update/hapus Reservasi (v)
+- Melihat rating masing-masing menu (v)
+- Memberikan rating kepada menu (v)
 
 # Category diatas menu management
 # menyelesaikan fitur reservasi

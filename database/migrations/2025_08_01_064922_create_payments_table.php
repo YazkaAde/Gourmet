@@ -15,7 +15,7 @@ return new class extends Migration
             $table->decimal('amount', 10, 2);
             $table->decimal('amount_paid', 10, 2)->nullable();
             $table->decimal('change', 10, 2)->default(0);
-            $table->enum('payment_method', ['cash', 'credit_card', 'debit_card', 'qris', 'bank_transfer']);
+            $table->enum('payment_method', ['cash', 'e_wallet', 'qris', 'bank_transfer']);
             $table->enum('status', ['pending', 'paid', 'failed'])->default('pending');
             $table->string('receipt_url')->nullable();
             $table->text('notes')->nullable();

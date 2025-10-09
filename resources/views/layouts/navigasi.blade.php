@@ -1,3 +1,4 @@
+<!-- [file name]: navigasi.blade.php (MODIFIED) -->
 @php
     use Illuminate\Support\Facades\Auth;
     $role = Auth::check() ? Auth::user()->role : null;
@@ -58,6 +59,16 @@
                             <path fill-rule="evenodd" d="M9.504 1.132a1 1 0 01.992 0l1.75 1a1 1 0 11-.992 1.736L10 3.152l-1.254.716a1 1 0 11-.992-1.736l1.75-1zM5.618 4.504a1 1 0 01-.372 1.364L5.016 6l.23.132a1 1 0 11-.992 1.736L4 7.723V8a1 1 0 01-2 0V6a.996.996 0 01.52-.878l1.734-.99a1 1 0 011.364.372zm8.764 0a1 1 0 011.364-.372l1.733.99A1.002 1.002 0 0118 6v2a1 1 0 11-2 0v-.277l-.254.145a1 1 0 11-.992-1.736l.23-.132-.23-.132a1 1 0 01-.372-1.364zm-7 4a1 1 0 011.364-.372L10 8.848l1.254-.716a1 1 0 11.992 1.736L11 10.58V12a1 1 0 11-2 0v-1.42l-1.246-.712a1 1 0 01-.372-1.364zM3 11a1 1 0 011-1h1a1 1 0 110 2H4a1 1 0 01-1-1zm10-1a1 1 0 011-1h1a1 1 0 110 2h-1a1 1 0 01-1-1z" clip-rule="evenodd"></path>
                         </svg>
                         <span class="ml-3">Category Management</span>
+                    </a>
+                </li>
+
+                {{-- Bank Payment Methods --}}
+                <li>
+                    <a href="{{ route('admin.bank-payment-methods.index') }}" class="flex items-center p-2 text-base font-normal text-gray-900 rounded-lg hover:bg-gray-100 group {{ request()->routeIs('admin.bank-payment-methods.*') ? 'bg-gray-100' : '' }}">
+                        <svg class="w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="ml-3">Payment Methods</span>
                     </a>
                 </li>
 

@@ -19,6 +19,7 @@ use App\Http\Controllers\Cashier\PaymentController;
 use App\Http\Controllers\Admin\NumberTableController;
 use App\Http\Controllers\Customer\ReservationController;
 use App\Http\Controllers\Customer\OrderPaymentController;
+use App\Http\Controllers\Admin\BankPaymentMethodController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Customer\ReservationPaymentController;
 
@@ -63,6 +64,14 @@ Route::middleware(['auth', 'role:admin', CheckBlacklist::class])->prefix('admin'
         Route::get('/', [BlacklistController::class, 'index'])->name('blacklist.index');
         Route::post('/', [BlacklistController::class, 'store'])->name('blacklist.store');
         Route::delete('/{id}', [BlacklistController::class, 'destroy'])->name('blacklist.destroy');
+    });
+
+    Route::prefix('bank-payment-methods')->name('bank-payment-methods.')->group(function() {
+        Route::get('/', [BankPaymentMethodController::class, 'index'])->name('index');
+        Route::post('/', [BankPaymentMethodController::class, 'store'])->name('store');
+        Route::put('/{bankPaymentMethod}', [BankPaymentMethodController::class, 'update'])->name('update');
+        Route::delete('/{bankPaymentMethod}', [BankPaymentMethodController::class, 'destroy'])->name('destroy');
+        Route::post('/{bankPaymentMethod}/toggle-status', [BankPaymentMethodController::class, 'toggleStatus'])->name('toggle-status');
     });
 
     // Admin Review Routes
