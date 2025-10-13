@@ -289,10 +289,56 @@ class Reservation extends Model
                $this->payments()->where('status', 'paid')->exists();
     }
 
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+
     public function getReviewableMenus()
     {
         return $this->orderItems->map(function ($orderItem) {
             return $orderItem->menu;
         })->unique('id');
+    }
+
+    public function getFormattedReservationTimeAttribute()
+    {
+        return $this->reservation_time->format('H:i');
+    }
+
+    public function getFormattedEndTimeAttribute()
+    {
+        return $this->end_time->format('H:i');
+    }
+
+    public function getFormattedReservationDateAttribute()
+    {
+        return $this->reservation_date->format('l, d-m-Y');
+    }
+
+    public function hasProcessingOrder()
+    {
+        return $this->orders()
+            ->whereIn('status', ['processing'])
+            ->exists();
+    }
+
+    // Logic untuk pre order
+    public function isMenuEditable()
+    {
+        return in_array($this->status, ['pending', 'confirmed']) && 
+            !$this->hasProcessingOrCompletedOrder();
+    }
+    public function hasProcessingOrCompletedOrder()
+    {
+        return $this->orders()
+            ->whereIn('status', ['processing', 'completed'])
+            ->exists();
+    }
+
+    public function canEditMenu()
+    {
+        return !in_array($this->status, ['completed', 'cancelled']) && 
+            !$this->hasProcessingOrCompletedOrder();
     }
 }

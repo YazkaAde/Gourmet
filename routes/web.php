@@ -96,15 +96,14 @@ Route::middleware(['auth', 'role:cashier', CheckBlacklist::class])->prefix('cash
         Route::patch('/{order}/status', [\App\Http\Controllers\Cashier\OrderController::class, 'updateStatus'])->name('update-status');
     });
 
-    // Payment Routes
-    Route::prefix('payments')->name('payments.')->group(function() {
-        Route::get('/', [PaymentController::class, 'index'])->name('index');
-        Route::get('/{payment}', [PaymentController::class, 'show'])->name('show');
-        Route::post('/{payment}/confirm', [PaymentController::class, 'confirm'])->name('confirm');
-        Route::post('/{payment}/process-cash', [PaymentController::class, 'processCashPayment'])->name('process-cash');
-        Route::get('/{payment}/receipt', [PaymentController::class, 'printReceipt'])->name('receipt');
+    Route::prefix('payments')->name('payments.')->group(function () {
+        Route::get('/', [PaymentController::class, 'index'])->name('index'); // /cashier/payments
+        Route::get('/{payment}', [PaymentController::class, 'show'])->name('show'); // /cashier/payments/{id}
+        Route::get('/{payment}/receipt', [PaymentController::class, 'printReceipt'])->name('receipt'); // /cashier/payments/{id}/receipt
+        
+        Route::post('/{payment}/confirm', [PaymentController::class, 'confirmPayment'])->name('confirm');
+        Route::post('/{payment}/reject', [PaymentController::class, 'rejectPayment'])->name('reject');
     });
-
     // Reservation Routes untuk Cashier
     Route::prefix('reservations')->name('reservations.')->group(function() {
         Route::get('/', [\App\Http\Controllers\Cashier\ReservationController::class, 'index'])->name('index');
@@ -139,13 +138,7 @@ Route::middleware(['auth', 'role:customer', CheckBlacklist::class])->group(funct
         Route::get('/{order}/payment', [OrderPaymentController::class, 'create'])
             ->name('payment.create');
         Route::post('/{order}/payment', [OrderPaymentController::class, 'store'])
-            ->name('payment.store');
-        
-        // Payment routes untuk order dari reservasi
-        Route::get('/{order}/pay-from-reservation', [OrderController::class, 'showPayFromReservation'])
-        ->name('pay-from-reservation.create');
-        Route::post('/{order}/pay-from-reservation', [OrderController::class, 'payFromReservation'])
-            ->name('pay-from-reservation.store');
+            ->name('payment.store');        
         });
 
     // Customer Review Routes
@@ -219,9 +212,12 @@ Route::middleware(['auth', 'role:customer', CheckBlacklist::class])->group(funct
             Route::post('/update-items', [ReservationController::class, 'updateMenuItems'])->name('update-items');
         });
         
+        
         // Payment routes
-        Route::get('/{reservation}/payment/create', [ReservationPaymentController::class, 'create'])->name('payment.create');
-        Route::post('/{reservation}/payment', [ReservationPaymentController::class, 'store'])->name('payment.store');
+        Route::get('/{reservation}/payment/create', [ReservationPaymentController::class, 'create'])
+        ->name('payment.create');
+        Route::post('/{reservation}/payment', [ReservationPaymentController::class, 'store'])
+            ->name('payment.store');
     });
 });
 

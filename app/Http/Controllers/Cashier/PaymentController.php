@@ -130,4 +130,74 @@ class PaymentController extends Controller
         return redirect()->route('cashier.payments.show', $payment)
             ->with('success', 'Payment confirmed successfully');
     }
+
+    public function confirmPayment(Request $request, Payment $payment)
+    {
+        if ($payment->status !== 'pending') {
+            return redirect()->back()
+                ->with('error', 'Payment is not pending confirmation.');
+        }
+
+        $oldStatus = $payment->status;
+        
+        if ($payment->payment_method === 'cash') {
+            $request->validate([
+                'amount_paid' => 'required|numeric|min:' . $payment->amount
+            ]);
+
+            $change = $request->amount_paid - $payment->amount;
+            
+            $payment->update([
+                'amount_paid' => $request->amount_paid,
+                'change' => max(0, $change),
+                'status' => 'paid'
+            ]);
+        } else {
+            $payment->update(['status' => 'paid']);
+        }
+
+        $this->updateRelatedStatus($payment);
+
+        event(new PaymentStatusUpdated($payment, $oldStatus, 'paid'));
+
+        $message = $payment->payment_method === 'cash' 
+            ? 'Cash payment processed successfully. Change: Rp ' . number_format($payment->change, 0)
+            : 'Payment confirmed successfully';
+
+        return redirect()->route('cashier.payments.show', $payment)
+            ->with('success', $message);
+    }
+
+    private function updateRelatedStatus(Payment $payment)
+    {
+        if ($payment->order_id && $payment->order) {
+            $payment->order->update(['status' => 'completed']);
+        }
+
+        if ($payment->reservation_id && $payment->reservation) {
+            if ($payment->reservation->status === 'pending') {
+                $payment->reservation->update(['status' => 'confirmed']);
+            }
+            
+            if ($payment->reservation->shouldBeCompleted()) {
+                $payment->reservation->update(['status' => 'completed']);
+            }
+        }
+    }
+
+    public function rejectPayment(Payment $payment)
+    {
+        if ($payment->status !== 'pending') {
+            return redirect()->back()
+                ->with('error', 'Payment is not pending.');
+        }
+
+        $oldStatus = $payment->status;
+        $payment->update(['status' => 'failed']);
+
+        event(new PaymentStatusUpdated($payment, $oldStatus, 'failed'));
+
+        return redirect()->route('cashier.payments.show', $payment)
+            ->with('success', 'Payment rejected successfully.');
+    }
 }

@@ -110,25 +110,24 @@
                                                 </a>
                                                 
                                                 @if($payment->status == 'pending')
-                                                    @if($payment->payment_method == 'cash')
-                                                        <a href="{{ route('cashier.payments.show', $payment) }}" 
-                                                        class="text-blue-600 hover:text-blue-800 text-sm">
-                                                            Process Cash
-                                                        </a>
-                                                    @else
-                                                        <form action="{{ route('cashier.payments.confirm', $payment) }}" method="POST">
-                                                            @csrf
-                                                            <button type="submit" 
-                                                                    class="text-green-600 hover:text-green-800 text-sm"
-                                                                    onclick="return confirm('Confirm this payment?')">
-                                                                Confirm
-                                                            </button>
-                                                        </form>
-                                                    @endif
+                                                    <button type="button" 
+                                                            onclick="openConfirmationModal('{{ $payment->id }}', '{{ $payment->payment_method }}', {{ $payment->amount }})"
+                                                            class="text-green-600 hover:text-green-800 text-sm">
+                                                        Confirm
+                                                    </button>
+                                                    
+                                                    <form action="{{ route('cashier.payments.reject', $payment) }}" method="POST" class="inline">
+                                                        @csrf
+                                                        <button type="submit" 
+                                                                class="text-red-600 hover:text-red-800 text-sm"
+                                                                onclick="return confirm('Reject this payment?')">
+                                                            Reject
+                                                        </button>
+                                                    </form>
                                                 @endif
                                                 
                                                 @if($payment->status == 'paid')
-                                                    <a href="{{ route('cashier.payments.receipt', $payment) }}" 
+                                                    <a href="{{ route('cashier.payments.receipt', $payment)" 
                                                     target="_blank"
                                                     class="text-purple-600 hover:text-purple-800 text-sm">
                                                         Receipt

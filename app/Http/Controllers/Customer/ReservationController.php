@@ -2,24 +2,35 @@
 
 namespace App\Http\Controllers\Customer;
 
-use App\Http\Controllers\Controller;
-use App\Models\Reservation;
-use App\Models\NumberTable;
-use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\Payment;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use App\Models\Menu;
+use App\Models\Order;
+use App\Models\Payment;
+use App\Models\Category;
+use App\Models\OrderItem;
+use App\Models\NumberTable;
+use App\Models\Reservation;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
 
 class ReservationController extends Controller
 {
     public function create()
-    {
-        $tables = NumberTable::all();
-        $menus = \App\Models\Menu::all();
-        return view('customer.reservation.create', compact('tables', 'menus'));
-    }
+{
+    $tables = NumberTable::all();
+    $categories = Category::all();
+    $menus = Menu::with(['category', 'reviews'])
+        ->when(request('category'), function($query) {
+            return $query->where('category_id', request('category'));
+        })
+        ->withCount('reviews')
+        ->withAvg('reviews', 'rating')
+        ->paginate(8);
+
+    return view('customer.reservation.create', compact('tables', 'menus', 'categories'));
+}
 
     public function store(Request $request)
     {
@@ -50,7 +61,7 @@ class ReservationController extends Controller
                         $endTime = $value;
                         
                         // Debug log
-                        \Log::info('Time Validation', [
+                        Log::info('Time Validation', [
                             'start_time' => $startTime,
                             'end_time' => $endTime,
                             'user_id' => auth()->id()
@@ -64,7 +75,7 @@ class ReservationController extends Controller
                         
                         $diffInMinutes = $endTotalMinutes - $startTotalMinutes;
                         
-                        \Log::info('Time Calculation', [
+                        Log::info('Time Calculation', [
                             'start_total_minutes' => $startTotalMinutes,
                             'end_total_minutes' => $endTotalMinutes,
                             'diff_in_minutes' => $diffInMinutes
@@ -79,7 +90,7 @@ class ReservationController extends Controller
                         }
                         
                     } catch (\Exception $e) {
-                        \Log::error('Time validation error: ' . $e->getMessage());
+                        Log::error('Time validation error: ' . $e->getMessage());
                         $fail('Terjadi kesalahan dalam validasi waktu');
                     }
                 },
@@ -138,18 +149,28 @@ class ReservationController extends Controller
     }
 
     public function show(Reservation $reservation)
-    {
-        if ($reservation->user_id !== Auth::id()) {
-            abort(403);
-        }
-
-        $reservation->load(['table', 'orderItems.menu', 'payments', 'user', 'orders.orderItems.menu']);
-        $menus = \App\Models\Menu::paginate(10);
-        $reservation->checkAndUpdateStatus();
-        $reservation->refresh();
-
-        return view('customer.reservation.show', compact('reservation', 'menus'));
+{
+    if ($reservation->user_id !== Auth::id()) {
+        abort(403);
     }
+
+    $reservation->load(['table', 'orderItems.menu', 'payments', 'user', 'orders.orderItems.menu']);
+    
+    $categories = Category::all();
+    
+    $menus = Menu::with(['category', 'reviews'])
+        ->when(request('category'), function($query) {
+            return $query->where('category_id', request('category'));
+        })
+        ->withCount('reviews')
+        ->withAvg('reviews', 'rating')
+        ->paginate(8);
+
+    $reservation->checkAndUpdateStatus();
+    $reservation->refresh();
+
+    return view('customer.reservation.show', compact('reservation', 'menus', 'categories'));
+}
 
     public function index()
     {
@@ -173,9 +194,16 @@ class ReservationController extends Controller
         }
 
         $tables = NumberTable::all();
-        $menus = \App\Models\Menu::all();
+        $categories = Category::all();
+        $menus = Menu::with(['category', 'reviews'])
+            ->when(request('category'), function($query) {
+                return $query->where('category_id', request('category'));
+            })
+            ->withCount('reviews')
+            ->withAvg('reviews', 'rating')
+            ->paginate(8);
         
-        return view('customer.reservation.edit', compact('reservation', 'tables', 'menus'));
+        return view('customer.reservation.edit', compact('reservation', 'tables', 'menus', 'categories'));
     }
 
     public function update(Request $request, Reservation $reservation)
@@ -207,7 +235,7 @@ class ReservationController extends Controller
                         $startTime = $request->reservation_time;
                         $endTime = $value;
                         
-                        \Log::info('Time Validation Update', [
+                        Log::info('Time Validation Update', [
                             'start_time' => $startTime,
                             'end_time' => $endTime,
                             'user_id' => auth()->id()
@@ -221,7 +249,7 @@ class ReservationController extends Controller
                         
                         $diffInMinutes = $endTotalMinutes - $startTotalMinutes;
                         
-                        \Log::info('Time Calculation Update', [
+                        Log::info('Time Calculation Update', [
                             'start_total_minutes' => $startTotalMinutes,
                             'end_total_minutes' => $endTotalMinutes,
                             'diff_in_minutes' => $diffInMinutes
@@ -236,7 +264,7 @@ class ReservationController extends Controller
                         }
                         
                     } catch (\Exception $e) {
-                        \Log::error('Time validation error in update: ' . $e->getMessage());
+                        Log::error('Time validation error in update: ' . $e->getMessage());
                         $fail('Terjadi kesalahan dalam validasi waktu');
                     }
                 },
@@ -275,8 +303,9 @@ class ReservationController extends Controller
         if ($reservation->user_id !== Auth::id() || in_array($reservation->status, ['completed', 'cancelled'])) {
             abort(403);
         }
-
-        $menus = \App\Models\Menu::paginate(10);
+        
+        $categories = Category::all();
+        $menus = Menu::with('category')->paginate(12);
         
         if (request()->ajax() || request()->wantsJson() || request()->hasHeader('X-Requested-With')) {
             return view('customer.reservation.partials.add-menu-modal', compact('reservation', 'menus'));
@@ -288,8 +317,11 @@ class ReservationController extends Controller
 
     public function updateMenuItems(Request $request, Reservation $reservation)
     {
-        if ($reservation->user_id !== Auth::id() || in_array($reservation->status, ['completed', 'cancelled'])) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        if ($reservation->user_id !== Auth::id() || !$reservation->isMenuEditable()) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Menu items cannot be modified at this time'
+            ], 403);
         }
 
         $validated = $request->validate([
@@ -325,103 +357,103 @@ class ReservationController extends Controller
     }
 
     public function storeMenu(Request $request, Reservation $reservation)
-{
-    if ($reservation->user_id !== Auth::id() || in_array($reservation->status, ['completed', 'cancelled'])) {
-        if ($request->ajax()) {
-            return response()->json([
-                'success' => false, 
-                'message' => 'Unauthorized action'
-            ], 403);
-        }
-        abort(403);
-    }
-
-    $validated = $request->validate([
-        'menu_id' => 'required|exists:menus,id',
-        'quantity' => 'required|integer|min:1',
-    ]);
-
-    try {
-        $existingItem = OrderItem::where('reservation_id', $reservation->id)
-            ->where('menu_id', $validated['menu_id'])
-            ->first();
-
-        $menu = \App\Models\Menu::find($validated['menu_id']);
-        
-        if ($existingItem) {
-            $existingItem->update([
-                'quantity' => $existingItem->quantity + $validated['quantity'],
-                'total_price' => $menu->price * ($existingItem->quantity + $validated['quantity'])
-            ]);
-            $message = 'Menu item quantity updated successfully!';
-        } else {
-            OrderItem::create([
-                'reservation_id' => $reservation->id,
-                'menu_id' => $validated['menu_id'],
-                'quantity' => $validated['quantity'],
-                'price' => $menu->price,
-                'total_price' => $menu->price * $validated['quantity']
-            ]);
-            $message = 'Menu item added successfully!';
-        }
-
-        $reservation->syncOrderItems();
-        $reservation->refresh();
-
-        if ($request->ajax() || $request->wantsJson() || $request->hasHeader('X-Requested-With')) {
-            return response()->json([
-                'success' => true,
-                'message' => $message,
-                'updated_reservation' => [
-                    'order_items_count' => $reservation->orderItems->count(),
-                    'order_items' => $reservation->orderItems->map(function($item) {
-                        return [
-                            'menu_name' => $item->menu->name,
-                            'quantity' => $item->quantity,
-                            'total_price' => $item->total_price
-                        ];
-                    })->values(),
-                    'menu_total' => $reservation->menu_total,
-                    'total_amount' => $reservation->total_amount,
-                    'down_payment_amount' => $reservation->down_payment_amount
-                ]
-            ]);
-        }
-
-        return back()->with('success', $message);
-
-    } catch (\Exception $e) {
-        if ($request->ajax() || $request->wantsJson() || $request->hasHeader('X-Requested-With')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error: ' . $e->getMessage()
-            ], 500);
-        }
-        
-        return back()->with('error', 'Error: ' . $e->getMessage());
-    }
-}
-
-    public function removeMenuItem(Reservation $reservation, OrderItem $orderItem)
     {
-        if ($reservation->user_id !== Auth::id() || in_array($reservation->status, ['completed', 'cancelled'])) {
+        if ($reservation->user_id !== Auth::id() || !$reservation->isMenuEditable()) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Menu items cannot be modified at this time'
+                ], 403);
+            }
             abort(403);
         }
 
+        $validated = $request->validate([
+            'menu_id' => 'required|exists:menus,id',
+            'quantity' => 'required|integer|min:1',
+        ]);
+
+        try {
+            $existingItem = OrderItem::where('reservation_id', $reservation->id)
+                ->where('menu_id', $validated['menu_id'])
+                ->first();
+
+            $menu = \App\Models\Menu::find($validated['menu_id']);
+            
+            if ($existingItem) {
+                $existingItem->update([
+                    'quantity' => $existingItem->quantity + $validated['quantity'],
+                    'total_price' => $menu->price * ($existingItem->quantity + $validated['quantity'])
+                ]);
+                $message = 'Menu item quantity updated successfully!';
+            } else {
+                OrderItem::create([
+                    'reservation_id' => $reservation->id,
+                    'menu_id' => $validated['menu_id'],
+                    'quantity' => $validated['quantity'],
+                    'price' => $menu->price,
+                    'total_price' => $menu->price * $validated['quantity']
+                ]);
+                $message = 'Menu item added successfully!';
+            }
+
+            $reservation->syncOrderItems();
+            $reservation->refresh();
+
+            if ($request->ajax() || $request->wantsJson() || $request->hasHeader('X-Requested-With')) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $message,
+                    'updated_reservation' => [
+                        'order_items_count' => $reservation->orderItems->count(),
+                        'order_items' => $reservation->orderItems->map(function($item) {
+                            return [
+                                'menu_name' => $item->menu->name,
+                                'quantity' => $item->quantity,
+                                'total_price' => $item->total_price
+                            ];
+                        })->values(),
+                        'menu_total' => $reservation->menu_total,
+                        'total_amount' => $reservation->total_amount,
+                        'down_payment_amount' => $reservation->down_payment_amount
+                    ]
+                ]);
+            }
+
+            return back()->with('success', $message);
+
+        } catch (\Exception $e) {
+            if ($request->ajax() || $request->wantsJson() || $request->hasHeader('X-Requested-With')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error: ' . $e->getMessage()
+                ], 500);
+            }
+            
+            return back()->with('error', 'Error: ' . $e->getMessage());
+        }
+    }
+
+    public function removeMenuItem(Reservation $reservation, OrderItem $orderItem)
+    {
+        if ($reservation->user_id !== Auth::id() || !$reservation->isMenuEditable()) {
+            abort(403);
+        }
+    
         $orderItem->delete();
         $reservation->syncOrderItems();
-
+    
         return back()->with('success', 'Menu item removed successfully');
     }
 
     public function clearMenu(Reservation $reservation)
     {
-        if ($reservation->user_id !== Auth::id()) {
+        if ($reservation->user_id !== Auth::id() || !$reservation->isMenuEditable()) {
             abort(403);
         }
-
+    
         OrderItem::where('reservation_id', $reservation->id)->delete();
-
+    
         return back()->with('success', 'All menu items cleared');
     }
 

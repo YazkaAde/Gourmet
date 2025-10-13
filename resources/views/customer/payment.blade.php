@@ -1,4 +1,4 @@
-<!-- [file name]: payment.blade.php (MODIFIED) -->
+<!-- [file name]: payment.blade.php (FIXED) -->
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
@@ -104,7 +104,7 @@
                                 <!-- E-Wallet -->
                                 <label class="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
                                     <input type="radio" name="payment_method" value="e_wallet" class="text-primary-600 focus:ring-primary-500 payment-method">
-                                    <span class="ml-3 text-sm font-medium text-gray-700">E-Wallet</span> <!-- Updated -->
+                                    <span class="ml-3 text-sm font-medium text-gray-700">E-Wallet</span>
                                 </label>
                                 
                                 <!-- QRIS -->
@@ -124,7 +124,7 @@
                             <div class="space-y-3">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Select Bank Account</label>
                                 <div class="grid gap-3">
-                                    @foreach($bankTransferMethods as $bankMethod)
+                                    @forelse($bankTransferMethods as $bankMethod)
                                     <label class="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-blue-50">
                                         <input type="radio" name="bank_method_id" value="{{ $bankMethod->id }}" 
                                                class="text-blue-600 focus:ring-blue-500 bank-method" 
@@ -132,11 +132,13 @@
                                                data-account-number="{{ $bankMethod->account_number }}">
                                         <div class="ml-3">
                                             <p class="text-sm font-medium text-gray-900">{{ $bankMethod->bank_name }}</p>
-                                            <p class="text-sm text-gray-600">{{ $bankMethod->account_number }}</p>
-                                            <p class="text-xs text-gray-500">A/N: {{ $bankMethod->account_holder_name }}</p>
                                         </div>
                                     </label>
-                                    @endforeach
+                                    @empty
+                                    <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                        <p class="text-sm text-yellow-700">No bank transfer methods available. Please contact administrator.</p>
+                                    </div>
+                                    @endforelse
                                 </div>
                                 @error('bank_method_id')
                                     <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
@@ -160,19 +162,21 @@
                             <div class="space-y-3">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Select E-Wallet</label>
                                 <div class="grid gap-3">
-                                    @foreach($eWalletMethods as $eWalletMethod)
+                                    @forelse($eWalletMethods as $eWalletMethod)
                                     <label class="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-green-50">
                                         <input type="radio" name="bank_method_id" value="{{ $eWalletMethod->id }}" 
-                                            class="text-green-600 focus:ring-green-500 ewallet-method" 
-                                            data-wallet-name="{{ $eWalletMethod->bank_name }}" 
-                                            data-account-number="{{ $eWalletMethod->account_number }}">
+                                               class="text-green-600 focus:ring-green-500 ewallet-method"
+                                               data-wallet-name="{{ $eWalletMethod->bank_name }}"
+                                               data-account-number="{{ $eWalletMethod->account_number }}">
                                         <div class="ml-3">
-                                            <p class="text-sm font-medium text-gray-900">{{ $eWalletMethod->bank_name }}</p> 
-                                            <p class="text-sm text-gray-600">{{ $eWalletMethod->account_number }}</p>
-                                            <p class="text-xs text-gray-500">A/N: {{ $eWalletMethod->account_holder_name }}</p>
+                                            <p class="text-sm font-medium text-gray-900">{{ $eWalletMethod->bank_name }}</p>
                                         </div>
                                     </label>
-                                    @endforeach
+                                    @empty
+                                    <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                        <p class="text-sm text-yellow-700">No e-wallet methods available. Please contact administrator.</p>
+                                    </div>
+                                    @endforelse
                                 </div>
                                 @error('bank_method_id')
                                     <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
@@ -189,7 +193,6 @@
                                 </div>
                             </div>
                         </div>
-
 
                         <!-- Info Sections -->
                         <div id="cashInfo" class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg hidden">
@@ -220,7 +223,7 @@
                                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
                                 </svg>
                                 <p class="text-blue-700 text-sm">
-                                    Please complete the bank transfer/debit card payment and our staff will verify your payment.
+                                    Please complete the bank transfer or e-wallet payment and our staff will verify your payment.
                                 </p>
                             </div>
                         </div>
@@ -262,15 +265,17 @@
         const qrisInfo = document.getElementById('qrisInfo');
         const bankInfo = document.getElementById('bankInfo');
         
+        console.log('Payment methods loaded:', paymentMethods.length);
+        console.log('E-Wallet methods available:', {{ $eWalletMethods->count() }});
+        console.log('Bank Transfer methods available:', {{ $bankTransferMethods->count() }});
+        
         function resetPaymentFields() {
             paymentFields.forEach(field => {
                 field.classList.add('hidden');
-                const inputs = field.querySelectorAll('input, select');
+                const inputs = field.querySelectorAll('input[type="radio"]');
                 inputs.forEach(input => {
+                    input.checked = false;
                     input.removeAttribute('required');
-                    if (input.type !== 'radio' && input.type !== 'checkbox') {
-                        input.value = '';
-                    }
                 });
             });
             
@@ -289,6 +294,7 @@
                 resetPaymentFields();
                 
                 const methodValue = this.value;
+                console.log('Payment method selected:', methodValue);
                 
                 if (methodValue === 'cash') {
                     cashInfo.classList.remove('hidden');
@@ -298,9 +304,9 @@
                     bankInfo.classList.remove('hidden');
                     document.getElementById('bankTransferFields').classList.remove('hidden');
                     setRequiredFields(['bank_method_id']);
-                } else if (methodValue === 'EWallet') {
+                } else if (methodValue === 'e_wallet') {
                     bankInfo.classList.remove('hidden');
-                    document.getElementById('EWalletFields').classList.remove('hidden');
+                    document.getElementById('eWalletFields').classList.remove('hidden');
                     setRequiredFields(['bank_method_id']);
                 }
             });
@@ -319,23 +325,23 @@
         });
 
         // E-Wallet method selection
-        document.querySelectorAll('.ewallet-method').forEach(method => { 
+        document.querySelectorAll('.ewallet-method').forEach(method => {
             method.addEventListener('change', function() {
                 const walletName = this.getAttribute('data-wallet-name');
                 const accountNumber = this.getAttribute('data-account-number');
                 
                 document.getElementById('selectedWalletName').textContent = walletName;
-                document.getElementById('selectedWalletNumber').textContent = accountNumber; 
-                document.getElementById('selectedEWallet').classList.remove('hidden'); 
+                document.getElementById('selectedWalletNumber').textContent = accountNumber;
+                document.getElementById('selectedEWallet').classList.remove('hidden');
             });
         });
 
         function setRequiredFields(fieldNames) {
             fieldNames.forEach(fieldName => {
-                const field = document.querySelector(`[name="${fieldName}"]`);
-                if (field) {
+                const fields = document.querySelectorAll(`[name="${fieldName}"]`);
+                fields.forEach(field => {
                     field.setAttribute('required', 'required');
-                }
+                });
             });
         }
 
@@ -352,22 +358,27 @@
             let isValid = true;
 
             if (methodValue === 'bank_transfer') {
-            const bankMethod = document.querySelector('.bank-method:checked');
-            if (!bankMethod) {
-                isValid = false;
-            }
+                const bankMethod = document.querySelector('.bank-method:checked');
+                if (!bankMethod) {
+                    isValid = false;
+                    alert('Please select a bank account for bank transfer');
+                }
             } else if (methodValue === 'e_wallet') {
                 const ewalletMethod = document.querySelector('.ewallet-method:checked');
                 if (!ewalletMethod) {
                     isValid = false;
+                    alert('Please select an e-wallet for payment');
                 }
             }
 
             if (!isValid) {
                 e.preventDefault();
-                alert('Please select a payment option for the selected payment method');
             }
         });
+
+        // Debug: Log available methods
+        console.log('Bank transfer radio buttons:', document.querySelectorAll('.bank-method').length);
+        console.log('E-wallet radio buttons:', document.querySelectorAll('.ewallet-method').length);
     });
     </script>
 </x-app-layout>

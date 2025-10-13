@@ -46,6 +46,24 @@ class Payment extends Model
     const METHOD_E_WALLET = 'e_wallet';
     const METHOD_QRIS = 'qris';
 
+    public function processCashPayment($amountPaid)
+    {
+        if (!$this->isCash()) {
+            return false;
+        }
+
+        $this->amount_paid = $amountPaid;
+        $this->change = max(0, $amountPaid - $this->amount);
+        $this->status = self::STATUS_PAID;
+        
+        return $this->save();
+    }
+
+    public function needsCashierConfirmation(): bool
+    {
+        return $this->isPending();
+    }
+
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class, 'order_id');

@@ -31,7 +31,7 @@ class OrderPaymentController extends Controller
         }
 
         $bankTransferMethods = BankPaymentMethod::active()->bankTransfer()->get();
-        $eWalletMethods = BankPaymentMethod::active()->eWallet()->get(); 
+        $eWalletMethods = BankPaymentMethod::active()->eWallet()->get();
 
         return view('customer.payment', compact('order', 'bankTransferMethods', 'eWalletMethods'));
     }
@@ -43,7 +43,7 @@ class OrderPaymentController extends Controller
         }
 
         $validated = $request->validate([
-            'payment_method' => 'required|in:cash,bank_transfer,e_wallet,qris',
+            'payment_method' => 'required|in:cash,bank_transfer,e_wallet,qris', // Pastikan e_wallet
             'bank_method_id' => 'required_if:payment_method,bank_transfer,e_wallet|exists:bank_payment_methods,id',
             'notes' => 'nullable|string|max:255'
         ]);
@@ -58,13 +58,12 @@ class OrderPaymentController extends Controller
             'notes' => $validated['notes'] ?? null
         ];
 
-        if (in_array($validated['payment_method'], ['bank_transfer', 'e_wallet'])) { // Updated
+        if (in_array($validated['payment_method'], ['bank_transfer', 'e_wallet'])) {
             $bankMethod = BankPaymentMethod::find($validated['bank_method_id']);
             
             if ($bankMethod) {
                 $paymentData['bank_name'] = $bankMethod->bank_name;
                 $paymentData['account_number'] = $bankMethod->account_number;
-                
             }
         }
 
@@ -81,7 +80,7 @@ class OrderPaymentController extends Controller
         $messages = [
             'cash' => 'Cash payment selected. Please proceed to cashier counter for processing.',
             'bank_transfer' => 'Bank transfer payment submitted. Please complete the transfer to the specified account.',
-            'e_wallet' => 'E-Wallet payment submitted. Please complete the payment using the specified e-wallet details.', // Updated
+            'e_wallet' => 'E-Wallet payment submitted. Please complete the payment using the specified e-wallet details.',
             'qris' => 'QRIS payment selected. Please scan the QR code at the cashier counter and complete the payment.'
         ];
 

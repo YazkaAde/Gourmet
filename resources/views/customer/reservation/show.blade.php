@@ -109,15 +109,15 @@
                         </div>
                         <div>
                             <p class="text-sm text-gray-600">Reservation Date</p>
-                            <p class="font-medium">{{ $reservation->reservation_date->format('M d, Y') }}</p>
+                            <p class="font-medium">{{ $reservation->formatted_reservation_date }}</p>
                         </div>
                         <div>
                             <p class="text-sm text-gray-600">Reservation Start</p>
-                            <p class="font-medium">{{ $reservation->reservation_time }}</p>
+                            <p class="font-medium">{{ $reservation->formatted_reservation_time }}</p>
                         </div>
                         <div>
                             <p class="text-sm text-gray-600">Reservation End</p>
-                            <p class="font-medium">{{ $reservation->end_time }}</p>
+                            <p class="font-medium">{{ $reservation->formatted_end_time }}</p>
                         </div>
                         <div>
                             <p class="text-sm text-gray-600">Created At</p>
@@ -171,7 +171,8 @@
                 <div class="p-6 bg-white border-b border-gray-200">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-lg font-semibold">Pre-Order Menu Items</h3>
-                        @if(!in_array($reservation->status, ['completed', 'cancelled']))
+                        
+                        @if($reservation->isMenuEditable())
                         <form action="{{ route('customer.reservations.menu.clear', $reservation) }}" method="POST" class="inline">
                             @csrf
                             @method('DELETE')
@@ -206,7 +207,7 @@
                             </div>
                             
                             <div class="flex items-center gap-4 flex-wrap">
-                                @if(!in_array($reservation->status, ['completed', 'cancelled']))
+                                @if($reservation->isMenuEditable())
                                 <div class="flex items-center border rounded-lg overflow-hidden">
                                     <button type="button" 
                                             class="px-3 py-2 bg-gray-200 hover:bg-gray-300 decrease-quantity transition-colors"
@@ -238,7 +239,19 @@
                                     </button>
                                 </form>
                                 @else
-                                <p class="text-sm text-gray-600">Qty: {{ $totalQuantity }}</p>
+                                <div class="text-center">
+                                    <p class="text-sm text-gray-600">Qty: {{ $totalQuantity }}</p>
+                                    <p class="text-xs text-gray-500">
+                                        @if($reservation->hasProcessingOrCompletedOrder())
+                                            @php
+                                                $orderStatus = $reservation->orders()->first()->status ?? 'unknown';
+                                            @endphp
+                                            Status: {{ ucfirst($orderStatus) }}
+                                        @else
+                                            Cannot be modified
+                                        @endif
+                                    </p>
+                                </div>
                                 @endif
                                 
                                 <p class="font-medium w-24 text-right item-total" data-item-id="{{ $item->id }}">
@@ -247,14 +260,9 @@
                             </div>
                         </div>
                         @endforeach
-                        
-                        <div class="flex justify-between font-bold text-lg pt-4 border-t">
-                            <span>Menu Total:</span>
-                            <span id="menu-total">Rp {{ number_format($reservation->orderItems->sum('total_price'), 0) }}</span>
-                        </div>
                     </div>
 
-                    @if(!in_array($reservation->status, ['completed', 'cancelled']))
+                    @if($reservation->isMenuEditable())
                     <div class="mt-6 pt-6 border-t border-gray-200 hidden" id="changes-section">
                         <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                             <span class="text-sm text-gray-600 text-center md:text-left" id="changes-message">Changes pending confirmation</span>
@@ -278,7 +286,7 @@
             @endif
 
             {{-- Add Menu Items Section --}}
-            @if(!in_array($reservation->status, ['completed', 'cancelled']))
+            @if($reservation->isMenuEditable())
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mt-6">
                 <div class="p-6 bg-white border-b border-gray-200">
                     <h3 class="text-lg font-semibold mb-4">Add Menu Items</h3>
@@ -289,6 +297,27 @@
                     </button>
                 </div>
             </div>
+            @else
+            @if($reservation->hasProcessingOrCompletedOrder())
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mt-6">
+                <div class="p-6 bg-white border-b border-gray-200">
+                    <div class="flex items-center p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <svg class="w-5 h-5 text-blue-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                        <div>
+                            <p class="text-blue-700 font-medium">Menu items cannot be modified</p>
+                            <p class="text-blue-600 text-sm">
+                                @php
+                                    $orderStatus = $reservation->orders()->first()->status ?? 'unknown';
+                                @endphp
+                                Your order is currently <span class="font-semibold">{{ $orderStatus }}</span> and menu items can no longer be changed.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
             @endif
 
             {{-- Payment Section --}}

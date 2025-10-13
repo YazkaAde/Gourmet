@@ -17,7 +17,7 @@
                                 <label for="reservation_date" class="block text-sm font-medium text-gray-700">Tanggal Reservasi</label>
                                 <input type="date" name="reservation_date" id="reservation_date" 
                                     class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                                    min="{{ date('Y-m-d') }}" 
+                                    min="{{ date('d-m-Y') }}" 
                                     value="{{ old('reservation_date') }}" required>
                                 @error('reservation_date')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>

@@ -13,7 +13,7 @@
                 </div>
             @endif
 
-            <!-- Current Reservation Details - Dipindah ke atas -->
+            <!-- Current Reservation Details -->
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
                 <div class="p-6 bg-white border-b border-gray-200">
                     <h3 class="text-lg font-semibold mb-4">Current Reservation Details</h3>
@@ -130,7 +130,8 @@
                                 @enderror
                             </div>
 
-                            <!-- Menu items section - Diperbaiki seperti di create -->
+                            <!-- Menu items section -->
+                            @if($reservation->canEditMenu())
                             <div class="md:col-span-2">
                                 <div class="flex justify-between items-center mb-4">
                                     <h3 class="text-lg font-medium text-gray-900">Pre-Order Menu Items</h3>
@@ -271,6 +272,14 @@
                                 </div>
                                 @endif
                             </div>
+                            @else
+                            <div class="md:col-span-2">
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">Pre-Order Menu Items</h3>
+                                <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                    <p class="text-yellow-700">Menu items cannot be modified because the order is being processed.</p>
+                                </div>
+                            </div>
+                            @endif
                         </div>
 
                         <!-- Reservation Summary -->
