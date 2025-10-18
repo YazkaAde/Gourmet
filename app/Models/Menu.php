@@ -21,33 +21,39 @@ class Menu extends Model
     ];
 
     public function category()
-{
-    return $this->belongsTo(Category::class);
-}
-public function reviews()
-{
-    return $this->hasMany(Review::class);
-}
+    {
+        return $this->belongsTo(Category::class);
+    }
 
-public function getAverageRatingAttribute()
-{
-    return $this->reviews()->avg('rating') ?: 0;
-}
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
 
-public function getRatingCountAttribute()
-{
-    return $this->reviews()->count();
-}
+    public function getAverageRatingAttribute()
+    {
+        return $this->reviews()->avg('rating') ?: 0;
+    }
 
-public function getRatingDistributionAttribute()
-{
-    return $this->reviews()
-        ->selectRaw('rating, COUNT(*) as count')
-        ->groupBy('rating')
-        ->orderBy('rating', 'desc')
-        ->get()
-        ->mapWithKeys(function ($item) {
-            return [$item->rating => $item->count];
-        });
-}
+    public function getImageAttribute()
+    {
+        return $this->image_url;
+    }
+
+    public function getRatingCountAttribute()
+    {
+        return $this->reviews()->count();
+    }
+
+    public function getRatingDistributionAttribute()
+    {
+        return $this->reviews()
+            ->selectRaw('rating, COUNT(*) as count')
+            ->groupBy('rating')
+            ->orderBy('rating', 'desc')
+            ->get()
+            ->mapWithKeys(function ($item) {
+                return [$item->rating => $item->count];
+            });
+    }
 }

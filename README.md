@@ -61,13 +61,15 @@ jika user status order masih pending user masih bisa menambah dan mengurangi men
 
 target
 1. membuat tampilan untuk add-menu untuk reservasi V
-2. merubah tampilan payment untuk reservasi dan order dengan metode pembayaran
+2. merubah tampilan payment untuk reservasi dan order dengan metode pembayaran v
 3. memperbaiki tampilan sidebar
 4. membuat dashboard untuk cashier
-5. menyelesaikan dashboard admin
-6. menyelesaikan logic untuk payment reservasi
+5. menyelesaikan dashboard admin v
+6. menyelesaikan logic untuk payment reservasi v
 7. membuat laporan penjualan
 8. membuat kolom note untuk order menu biasa
+9. membuat fitur tambah order sebelum complete
+10. membuat fitur menu ready or not
 
 
 terimakasih telah membantu saya sejauh ini. sekarang bisakah kamu membuat bagian untuk menampilkan reservation proof yang mencakup

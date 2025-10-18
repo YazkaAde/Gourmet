@@ -20,9 +20,33 @@
             @else
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6 bg-white border-b border-gray-200">
+                        <!-- Selection Controls -->
+                        <div class="flex items-center justify-between mb-6 p-4 bg-gray-50 rounded-lg">
+                            <div class="flex items-center space-x-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="select-all" class="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50">
+                                    <span class="ml-2 text-sm font-medium text-gray-700">Select All</span>
+                                </label>
+                                <button type="button" id="remove-selected" class="text-red-600 hover:text-red-800 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                                    Remove Selected
+                                </button>
+                            </div>
+                            <div class="text-sm text-gray-600">
+                                <span id="selected-count">0</span> items selected
+                            </div>
+                        </div>
+                        
                         <div class="space-y-6">
                             @foreach($carts as $cart)
-                                <div class="flex p-4 border rounded-lg bg-white hover:shadow-md transition-shadow">
+                                <div class="flex p-4 border rounded-lg bg-white hover:shadow-md transition-shadow cart-item" data-cart-id="{{ $cart->id }}">
+                                    <!-- Checkbox untuk memilih item -->
+                                    <div class="flex items-start mr-4">
+                                        <input type="checkbox" 
+                                               class="item-checkbox rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50"
+                                               value="{{ $cart->id }}"
+                                               data-price="{{ $cart->menu->price * $cart->quantity }}">
+                                    </div>
+                                    
                                     <!-- Gambar Menu -->
                                     @if($cart->menu->image_url)
                                     <div class="flex-shrink-0 w-24 h-24 mr-4">
@@ -94,14 +118,19 @@
                         <!-- Total dan Checkout -->
                         <div class="mt-8 pt-6 border-t border-gray-200">
                             <div class="flex justify-between items-center">
-                                <div class="text-xl font-bold text-gray-900" id="cart-total">
-                                    Total: Rp {{ number_format($carts->sum(function($cart) { return $cart->menu->price * $cart->quantity; }), 0) }}
+                                <div>
+                                    <div class="text-xl font-bold text-gray-900" id="cart-total">
+                                        Total: Rp {{ number_format($carts->sum(function($cart) { return $cart->menu->price * $cart->quantity; }), 0) }}
+                                    </div>
+                                    <div class="text-lg font-semibold text-primary-600" id="selected-total">
+                                        Selected: Rp 0
+                                    </div>
                                 </div>
-                                <button class="checkout-btn bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 font-semibold transition flex items-center gap-2">
+                                <button class="checkout-btn bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 font-semibold transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                                     <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                                         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7 7V5"/>
                                     </svg>
-                                    Checkout
+                                    Checkout Selected
                                 </button>
                             </div>
                         </div>
@@ -113,6 +142,124 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            let selectedItems = new Set();
+            
+            // Fungsi untuk mengupdate selection UI
+            function updateSelectionUI() {
+                const selectedCount = selectedItems.size;
+                const totalItems = document.querySelectorAll('.item-checkbox').length;
+                
+                // Update selected count
+                document.getElementById('selected-count').textContent = selectedCount;
+                
+                // Update select all checkbox
+                const selectAll = document.getElementById('select-all');
+                if (selectedCount === 0) {
+                    selectAll.checked = false;
+                    selectAll.indeterminate = false;
+                } else if (selectedCount === totalItems) {
+                    selectAll.checked = true;
+                    selectAll.indeterminate = false;
+                } else {
+                    selectAll.checked = false;
+                    selectAll.indeterminate = true;
+                }
+                
+                // Update remove selected button
+                const removeSelectedBtn = document.getElementById('remove-selected');
+                removeSelectedBtn.disabled = selectedCount === 0;
+                
+                // Update checkout button
+                const checkoutBtn = document.querySelector('.checkout-btn');
+                checkoutBtn.disabled = selectedCount === 0;
+                
+                // Update selected total
+                updateSelectedTotal();
+            }
+            
+            // Fungsi untuk mengupdate total item yang dipilih
+            function updateSelectedTotal() {
+                let selectedTotal = 0;
+                
+                document.querySelectorAll('.item-checkbox:checked').forEach(function(checkbox) {
+                    selectedTotal += parseFloat(checkbox.getAttribute('data-price')) || 0;
+                });
+                
+                document.getElementById('selected-total').textContent = `Selected: Rp ${selectedTotal.toLocaleString()}`;
+            }
+            
+            // Handle select all checkbox
+            document.getElementById('select-all').addEventListener('change', function() {
+                const checkboxes = document.querySelectorAll('.item-checkbox');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                    if (this.checked) {
+                        selectedItems.add(checkbox.value);
+                    } else {
+                        selectedItems.delete(checkbox.value);
+                    }
+                });
+                updateSelectionUI();
+            });
+            
+            // Handle individual item checkboxes
+            document.addEventListener('change', function(e) {
+                if (e.target.classList.contains('item-checkbox')) {
+                    if (e.target.checked) {
+                        selectedItems.add(e.target.value);
+                    } else {
+                        selectedItems.delete(e.target.value);
+                    }
+                    updateSelectionUI();
+                }
+            });
+            
+            // Handle remove selected button
+            document.getElementById('remove-selected').addEventListener('click', function() {
+                if (selectedItems.size === 0) return;
+                
+                if (!confirm(`Are you sure you want to remove ${selectedItems.size} item(s) from your cart?`)) {
+                    return;
+                }
+                
+                fetch('{{ route("customer.cart.destroy-multiple") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        cart_ids: Array.from(selectedItems)
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remove selected items from DOM
+                        selectedItems.forEach(cartId => {
+                            const item = document.querySelector(`.cart-item[data-cart-id="${cartId}"]`);
+                            if (item) {
+                                item.remove();
+                            }
+                        });
+                        
+                        selectedItems.clear();
+                        updateSelectionUI();
+                        updateTotals();
+                        
+                        // Check if cart is empty
+                        if (document.querySelectorAll('.cart-item').length === 0) {
+                            window.location.reload();
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error removing items:', error);
+                    alert('Error removing selected items');
+                });
+            });
+
             // Fungsi untuk mengupdate kontrol kuantitas
             function updateQuantityControl(input) {
                 const cartId = input.getAttribute('data-cart-id');
@@ -145,6 +292,12 @@
                         itemTotalElement.textContent = `Total: Rp ${itemTotal.toLocaleString()}`;
                     }
                     
+                    // Update data-price attribute on checkbox
+                    const checkbox = document.querySelector(`.item-checkbox[value="${cartId}"]`);
+                    if (checkbox) {
+                        checkbox.setAttribute('data-price', itemTotal);
+                    }
+                    
                     grandTotal += itemTotal;
                 });
                 
@@ -152,6 +305,11 @@
                 const cartTotalElement = document.getElementById('cart-total');
                 if (cartTotalElement) {
                     cartTotalElement.textContent = `Total: Rp ${grandTotal.toLocaleString()}`;
+                }
+                
+                // Update selected total jika ada item yang dipilih
+                if (selectedItems.size > 0) {
+                    updateSelectedTotal();
                 }
                 
                 return grandTotal;
@@ -179,8 +337,12 @@
                     .then(data => {
                         if (data.success) {
                             console.log('Quantity updated successfully');
-                            // Refresh halaman untuk update data terbaru
-                            window.location.reload();
+                            // Update checkbox data-price attribute
+                            const checkbox = document.querySelector(`.item-checkbox[value="${cartId}"]`);
+                            if (checkbox && checkbox.checked) {
+                                checkbox.setAttribute('data-price', data.new_total);
+                                updateSelectedTotal();
+                            }
                         }
                     })
                     .catch(error => {
@@ -193,6 +355,8 @@
             const checkoutBtn = document.querySelector('.checkout-btn');
             if (checkoutBtn) {
                 checkoutBtn.addEventListener('click', async function() {
+                    if (selectedItems.size === 0) return;
+                    
                     try {
                         // Ambil daftar meja dari server
                         const response = await fetch('{{ route("api.available-tables") }}');
@@ -211,13 +375,14 @@
                         
                         const tableForm = `
                             <div class="p-4">
-                                <h3 class="text-lg font-medium mb-3">Select Table</h3>
+                                <h3 class="text-lg font-medium mb-3">Checkout ${selectedItems.size} Selected Item(s)</h3>
+                                <p class="text-sm text-gray-600 mb-3">Select table for your order:</p>
                                 <select id="table-select" class="w-full p-2 border border-gray-300 rounded mb-3">
                                     ${tableOptions}
                                 </select>
                                 <div class="flex justify-end gap-2">
                                     <button type="button" id="cancel-table" class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
-                                    <button type="button" id="confirm-table" class="px-4 py-2 bg-primary-600 text-white rounded">Confirm</button>
+                                    <button type="button" id="confirm-table" class="px-4 py-2 bg-primary-600 text-white rounded">Confirm Checkout</button>
                                 </div>
                             </div>
                         `;
@@ -238,7 +403,6 @@
                             const selectedTable = document.getElementById('table-select').value;
                             modal.remove();
                             
-                            // Tampilkan loading state
                             checkoutBtn.disabled = true;
                             checkoutBtn.innerHTML = `
                                 <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -248,7 +412,6 @@
                                 Processing...
                             `;
                             
-                            // Kirim request checkout
                             fetch('{{ route("customer.cart.checkout") }}', {
                                 method: 'POST',
                                 headers: {
@@ -257,7 +420,8 @@
                                     'X-Requested-With': 'XMLHttpRequest'
                                 },
                                 body: JSON.stringify({
-                                    table_number: selectedTable
+                                    table_number: selectedTable,
+                                    selected_cart_ids: Array.from(selectedItems)
                                 })
                             })
                             .then(response => response.json())
@@ -272,7 +436,7 @@
                                         <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                                             <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7 7V5"/>
                                         </svg>
-                                        Checkout
+                                        Checkout Selected
                                     `;
                                 }
                             })
@@ -284,12 +448,11 @@
                                     <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                                         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7 7V5"/>
                                     </svg>
-                                    Checkout
+                                    Checkout Selected
                                 `;
                             });
                         });
                         
-                        // Handle cancel button
                         document.getElementById('cancel-table').addEventListener('click', function() {
                             modal.remove();
                         });
@@ -301,7 +464,6 @@
                 });
             }
             
-            // Event delegation untuk tombol + dan -
             document.addEventListener('click', function(e) {
                 const incrementBtn = e.target.closest('.quantity-increment');
                 const decrementBtn = e.target.closest('.quantity-decrement');
@@ -330,14 +492,12 @@
                 }
             });
             
-            // Event listener untuk input manual
             document.addEventListener('input', function(e) {
                 if (e.target.classList.contains('quantity-input')) {
                     const cartId = e.target.getAttribute('data-cart-id');
                     updateQuantityControl(e.target);
                     updateTotals();
                     
-                    // Gunakan debounce untuk menghindari terlalu banyak request
                     clearTimeout(window[`debounceTimeout_${cartId}`]);
                     window[`debounceTimeout_${cartId}`] = setTimeout(() => {
                         submitUpdateForm(cartId);
@@ -345,7 +505,6 @@
                 }
             });
             
-            // Event listener untuk perubahan input
             document.addEventListener('change', function(e) {
                 if (e.target.classList.contains('quantity-input')) {
                     const cartId = e.target.getAttribute('data-cart-id');
@@ -355,7 +514,6 @@
                 }
             });
             
-            // Inisialisasi kontrol kuantitas saat halaman dimuat
             document.querySelectorAll('.quantity-input').forEach(function(input) {
                 updateQuantityControl(input);
             });

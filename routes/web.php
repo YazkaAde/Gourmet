@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\BlacklistController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Cashier\PaymentController;
 use App\Http\Controllers\Admin\NumberTableController;
+use App\Http\Controllers\Admin\SalesReportController;
 use App\Http\Controllers\Customer\ReservationController;
 use App\Http\Controllers\Customer\OrderPaymentController;
 use App\Http\Controllers\Admin\BankPaymentMethodController;
@@ -47,6 +48,14 @@ Route::middleware(['auth', CheckBlacklist::class])->group(function () {
 Route::middleware(['auth', 'role:admin', CheckBlacklist::class])->prefix('admin')->name('admin.')->group(function() {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+    // Rute Laporan
+    Route::prefix('sales-report')->name('sales-report.')->group(function() {
+        Route::get('/', [SalesReportController::class, 'index'])->name('index');
+        Route::get('/export', [SalesReportController::class, 'export'])->name('export');
+        Route::get('/filter', [SalesReportController::class, 'filter'])->name('filter');
+        Route::get('/change-period', [SalesReportController::class, 'changePeriod'])->name('change-period');
+    });
+
     // rute menu
     Route::resource('menus', MenuController::class)->except(['show']);
 
@@ -66,6 +75,7 @@ Route::middleware(['auth', 'role:admin', CheckBlacklist::class])->prefix('admin'
         Route::delete('/{id}', [BlacklistController::class, 'destroy'])->name('blacklist.destroy');
     });
 
+    // rute Metode Payment
     Route::prefix('bank-payment-methods')->name('bank-payment-methods.')->group(function() {
         Route::get('/', [BankPaymentMethodController::class, 'index'])->name('index');
         Route::post('/', [BankPaymentMethodController::class, 'store'])->name('store');
@@ -85,9 +95,15 @@ Route::middleware(['auth', 'role:admin', CheckBlacklist::class])->prefix('admin'
 
 // Cashier Routes
 Route::middleware(['auth', 'role:cashier', CheckBlacklist::class])->prefix('cashier')->name('cashier.')->group(function() {
-    Route::get('/dashboard', function () {
-        return view('cashier.dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [\App\Http\Controllers\Cashier\DashboardController::class, 'index'])->name('dashboard');
+    
+    // Sales Report
+    Route::prefix('sales-report')->name('sales-report.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Cashier\SalesReportController::class, 'index'])->name('index');
+        Route::get('/export', [\App\Http\Controllers\Cashier\SalesReportController::class, 'export'])->name('export');
+        Route::get('/filter', [\App\Http\Controllers\Cashier\SalesReportController::class, 'filter'])->name('filter');
+        Route::post('/change-period', [\App\Http\Controllers\Cashier\SalesReportController::class, 'changePeriod'])->name('change-period');
+    });
 
     // Orders Routes untuk Cashier
     Route::prefix('orders')->name('orders.')->group(function() {
@@ -96,21 +112,23 @@ Route::middleware(['auth', 'role:cashier', CheckBlacklist::class])->prefix('cash
         Route::patch('/{order}/status', [\App\Http\Controllers\Cashier\OrderController::class, 'updateStatus'])->name('update-status');
     });
 
+    // Payment Routes
     Route::prefix('payments')->name('payments.')->group(function () {
-        Route::get('/', [PaymentController::class, 'index'])->name('index'); // /cashier/payments
-        Route::get('/{payment}', [PaymentController::class, 'show'])->name('show'); // /cashier/payments/{id}
-        Route::get('/{payment}/receipt', [PaymentController::class, 'printReceipt'])->name('receipt'); // /cashier/payments/{id}/receipt
+        Route::get('/', [PaymentController::class, 'index'])->name('index');
+        Route::get('/{payment}', [PaymentController::class, 'show'])->name('show');
+        Route::get('/{payment}/receipt', [PaymentController::class, 'printReceipt'])->name('receipt');
         
         Route::post('/{payment}/confirm', [PaymentController::class, 'confirmPayment'])->name('confirm');
         Route::post('/{payment}/reject', [PaymentController::class, 'rejectPayment'])->name('reject');
     });
-    // Reservation Routes untuk Cashier
-    Route::prefix('reservations')->name('reservations.')->group(function() {
-        Route::get('/', [\App\Http\Controllers\Cashier\ReservationController::class, 'index'])->name('index');
-        Route::get('/{reservation}', [\App\Http\Controllers\Cashier\ReservationController::class, 'show'])->name('show');
-        Route::patch('/{reservation}/status', [\App\Http\Controllers\Cashier\ReservationController::class, 'updateStatus'])->name('update-status');
+
+        // Reservation Routes untuk Cashier
+        Route::prefix('reservations')->name('reservations.')->group(function() {
+            Route::get('/', [\App\Http\Controllers\Cashier\ReservationController::class, 'index'])->name('index');
+            Route::get('/{reservation}', [\App\Http\Controllers\Cashier\ReservationController::class, 'show'])->name('show');
+            Route::patch('/{reservation}/status', [\App\Http\Controllers\Cashier\ReservationController::class, 'updateStatus'])->name('update-status');
+        });
     });
-});
 
 // Customer Routes
 Route::middleware(['auth', 'role:customer', CheckBlacklist::class])->group(function() {
@@ -126,6 +144,7 @@ Route::middleware(['auth', 'role:customer', CheckBlacklist::class])->group(funct
         Route::patch('/{id}', [CartController::class, 'update'])->name('update');
         Route::delete('/{id}', [CartController::class, 'destroy'])->name('destroy');
         Route::post('/checkout', [CartController::class, 'checkout'])->name('checkout');
+        Route::post('/destroy-multiple', [CartController::class, 'destroyMultiple'])->name('destroy-multiple');
     });
 
     // Order Routes

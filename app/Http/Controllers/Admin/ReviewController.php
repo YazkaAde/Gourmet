@@ -11,28 +11,41 @@ class ReviewController extends Controller
 {
     public function index()
     {
-        $reviews = Review::with(['user', 'menu'])
-            ->latest()
-            ->paginate(20);
+        $menuReviews = Menu::withCount(['reviews as total_reviews'])
+            ->withAvg('reviews', 'rating')
+            ->withCount(['reviews as pending_replies' => function($query) {
+                $query->whereNull('admin_reply');
+            }])
+            ->having('total_reviews', '>', 0)
+            ->orderBy('total_reviews', 'desc')
+            ->paginate(10);
 
-        $stats = [
-            'total_reviews' => Review::count(),
-            'average_rating' => Review::avg('rating') ?: 0,
-            'pending_replies' => Review::pendingReply()->count(),
-            'rating_distribution' => Review::selectRaw('rating, COUNT(*) as count')
-                ->groupBy('rating')
-                ->orderBy('rating', 'desc')
-                ->get()
-        ];
+        $totalReviews = Review::count();
+        $averageRating = Review::avg('rating') ?: 0;
+        $pendingReplies = Review::whereNull('admin_reply')->count();
+        $repliedReviews = Review::whereNotNull('admin_reply')->count();
 
-        return view('admin.reviews.index', compact('reviews', 'stats'));
+        return view('admin.reviews.index', compact(
+            'menuReviews',
+            'totalReviews',
+            'averageRating',
+            'pendingReplies',
+            'repliedReviews'
+        ));
     }
 
-    public function show(Review $review)
+    public function show($id)
     {
-        $review->load(['user', 'menu', 'order']);
+        $menu = Menu::with('category')->findOrFail($id);
+        
+        $reviews = Review::with(['user', 'menu'])
+            ->where('menu_id', $id)
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
 
-        return view('admin.reviews.show', compact('review'));
+        $averageRating = Review::where('menu_id', $id)->avg('rating') ?: 0;
+
+        return view('admin.reviews.show', compact('menu', 'reviews', 'averageRating'));
     }
 
     public function reply(Request $request, Review $review)
@@ -41,24 +54,33 @@ class ReviewController extends Controller
             'admin_reply' => 'required|string|max:500'
         ]);
 
-        $review->update([
-            'admin_reply' => $request->admin_reply,
-            'replied_at' => now()
-        ]);
+        try {
+            $review->update([
+                'admin_reply' => $request->admin_reply,
+                'replied_at' => now()
+            ]);
 
-        return redirect()->back()->with('success', 'Reply submitted successfully!');
+            return redirect()->back()->with('success', 'Reply posted successfully.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to post reply: ' . $e->getMessage());
+        }
     }
 
     public function menuStats(Menu $menu)
     {
-        $menu->load('reviews.user');
+        $stats = Review::where('menu_id', $menu->id)
+            ->selectRaw('COUNT(*) as total_reviews, AVG(rating) as average_rating')
+            ->first();
 
-        $stats = [
-            'average_rating' => $menu->average_rating,
-            'rating_count' => $menu->rating_count,
-            'rating_distribution' => $menu->rating_distribution
-        ];
+        $ratingDistribution = Review::where('menu_id', $menu->id)
+            ->selectRaw('rating, COUNT(*) as count')
+            ->groupBy('rating')
+            ->orderBy('rating', 'desc')
+            ->get();
 
-        return view('admin.reviews.menu-stats', compact('menu', 'stats'));
+        return response()->json([
+            'stats' => $stats,
+            'rating_distribution' => $ratingDistribution
+        ]);
     }
 }

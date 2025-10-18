@@ -110,11 +110,27 @@
                                                 </a>
                                                 
                                                 @if($payment->status == 'pending')
-                                                    <button type="button" 
-                                                            onclick="openConfirmationModal('{{ $payment->id }}', '{{ $payment->payment_method }}', {{ $payment->amount }})"
-                                                            class="text-green-600 hover:text-green-800 text-sm">
-                                                        Confirm
-                                                    </button>
+                                                    @if($payment->payment_method != 'cash')
+                                                        <form action="{{ route('cashier.payments.confirm', $payment) }}" method="POST" class="inline">
+                                                            @csrf
+                                                            <button type="submit" 
+                                                                    class="text-green-600 hover:text-green-800 text-sm"
+                                                                    onclick="return confirm('Confirm this {{ $payment->payment_method }} payment?')">
+                                                                Confirm
+                                                            </button>
+                                                        </form>
+                                                    @else
+                                                        <button type="button" 
+                                                                onclick="confirmCashPayment({{ $payment->id }}, {{ $payment->amount }})"
+                                                                class="text-green-600 hover:text-green-800 text-sm">
+                                                            Confirm
+                                                        </button>
+                                                        
+                                                        <form action="{{ route('cashier.payments.confirm', $payment) }}" method="POST" id="cashForm{{ $payment->id }}" class="hidden">
+                                                            @csrf
+                                                            <input type="number" name="amount_paid" id="amountInput{{ $payment->id }}">
+                                                        </form>
+                                                    @endif
                                                     
                                                     <form action="{{ route('cashier.payments.reject', $payment) }}" method="POST" class="inline">
                                                         @csrf
@@ -127,7 +143,7 @@
                                                 @endif
                                                 
                                                 @if($payment->status == 'paid')
-                                                    <a href="{{ route('cashier.payments.receipt', $payment)" 
+                                                    <a href="{{ route('cashier.payments.receipt', $payment) }}" 
                                                     target="_blank"
                                                     class="text-purple-600 hover:text-purple-800 text-sm">
                                                         Receipt
@@ -135,7 +151,6 @@
                                                 @endif
                                             </div>
                                         </td>
-
                                     </tr>
                                 @empty
                                     <tr>
@@ -156,4 +171,94 @@
             </div>
         </div>
     </div>
+
+    <div id="confirmationModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg w-96 p-6">
+            <h3 class="text-lg font-medium mb-4" id="modalTitle">Confirm Payment</h3>
+            <form id="confirmationForm" method="POST">
+                @csrf
+                <div id="cashFields" class="mb-4 hidden">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Amount Paid</label>
+                        <input type="number" 
+                               name="amount_paid" 
+                               class="w-full p-2 border border-gray-300 rounded"
+                               placeholder="Enter amount paid"
+                               min="0"
+                               required
+                               step="500"
+                               id="amountPaidInput">
+                        <p class="text-sm text-gray-500 mt-1">Amount due: <span id="amountDue">Rp 0</span></p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Change</label>
+                        <div class="p-3 bg-gray-100 rounded">
+                            <p class="font-medium" id="changeAmount">Rp 0</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="nonCashMessage" class="mb-4 p-3 bg-blue-50 rounded hidden">
+                    <p class="text-sm text-blue-700">Confirm this payment? Payment will be marked as paid.</p>
+                </div>
+                
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeConfirmationModal()" class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Confirm Payment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    let currentPaymentId = null;
+
+    function openConfirmationModal(paymentId, paymentMethod, amountDue) {
+        currentPaymentId = paymentId;
+        const modal = document.getElementById('confirmationModal');
+        const cashFields = document.getElementById('cashFields');
+        const nonCashMessage = document.getElementById('nonCashMessage');
+        const amountDueSpan = document.getElementById('amountDue');
+        const form = document.getElementById('confirmationForm');
+        
+        form.action = `/cashier/payments/${paymentId}/confirm`;
+        
+        amountDueSpan.textContent = `Rp ${amountDue.toLocaleString()}`;
+        
+        if (paymentMethod === 'cash') {
+            cashFields.classList.remove('hidden');
+            nonCashMessage.classList.add('hidden');
+            document.getElementById('amountPaidInput').value = '';
+            document.getElementById('changeAmount').textContent = 'Rp 0';
+        } else {
+            cashFields.classList.add('hidden');
+            nonCashMessage.classList.remove('hidden');
+        }
+        
+        modal.classList.remove('hidden');
+        if (paymentMethod === 'cash') {
+            document.getElementById('amountPaidInput').focus();
+        }
+    }
+
+    function closeConfirmationModal() {
+        document.getElementById('confirmationModal').classList.add('hidden');
+    }
+
+    document.getElementById('amountPaidInput')?.addEventListener('input', function() {
+        const amountPaid = parseFloat(this.value) || 0;
+        const amountDue = parseFloat(document.getElementById('amountDue').textContent.replace(/[^\d]/g, '')) || 0;
+        const change = amountPaid - amountDue;
+
+        document.getElementById('changeAmount').textContent = 
+            `Rp ${change >= 0 ? change.toLocaleString() : '0'}`;
+    });
+
+    document.getElementById('confirmationModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeConfirmationModal();
+        }
+    });
+    </script>
 </x-app-layout>
