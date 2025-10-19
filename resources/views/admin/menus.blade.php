@@ -34,43 +34,50 @@
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @forelse ($menus as $menu)
-                                    <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="flex items-center">
-                                                @if($menu->image_url)
-                                                    <div class="flex-shrink-0 h-10 w-10">
-                                                        <img class="h-10 w-10 rounded-full object-cover" src="{{ asset('storage/'.$menu->image_url) }}" alt="{{ $menu->name }}">
-                                                    </div>
-                                                @endif
-                                                <div class="ml-4">
-                                                    <div class="text-sm font-medium text-gray-900">{{ $menu->name }}</div>
-                                                    <div class="text-sm text-gray-500">{{ Str::limit($menu->description, 50) }}</div>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            @if($menu->image_url)
+                                                <div class="flex-shrink-0 h-10 w-10">
+                                                    <img class="h-10 w-10 rounded-full object-cover" src="{{ asset('storage/'.$menu->image_url) }}" alt="{{ $menu->name }}">
                                                 </div>
+                                            @endif
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900">{{ $menu->name }}</div>
+                                                <div class="text-sm text-gray-500">{{ Str::limit($menu->description, 50) }}</div>
                                             </div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-{{ $menu->category->color }}-100 text-{{ $menu->category->color }}-800">
-                                                {{ $menu->category->name }}
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            Rp{{ number_format($menu->price, 2) }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <button data-modal-target="menuModal{{ $menu->id }}" data-modal-toggle="menuModal{{ $menu->id }}" class="text-indigo-600 hover:text-indigo-900 mr-3">
-                                                Edit
-                                            </button>
-                                            <button data-modal-target="deleteModal{{ $menu->id }}" data-modal-toggle="deleteModal{{ $menu->id }}" class="text-red-600 hover:text-red-900">
-                                                Delete
-                                            </button>
-                                        </td>
-                                    </tr>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-{{ $menu->category->color }}-100 text-{{ $menu->category->color }}-800">
+                                            {{ $menu->category->name }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                            {{ $menu->status == 'available' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                            {{ ucfirst($menu->status) }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        Rp{{ number_format($menu->price, 2) }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button data-modal-target="menuModal{{ $menu->id }}" data-modal-toggle="menuModal{{ $menu->id }}" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                                            Edit
+                                        </button>
+                                        <button data-modal-target="deleteModal{{ $menu->id }}" data-modal-toggle="deleteModal{{ $menu->id }}" class="text-red-600 hover:text-red-900">
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
 
                                     <!-- Edit Menu Modal -->
                                     <div id="menuModal{{ $menu->id }}" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-modal md:h-full">
@@ -106,6 +113,13 @@
                                                         <div class="sm:col-span-2">
                                                             <label for="description" class="block mb-2 text-sm font-medium text-gray-900">Description</label>
                                                             <textarea name="description" id="description" rows="4" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-primary-500 focus:border-primary-500">{{ $menu->description }}</textarea>
+                                                        </div>
+                                                        <div>
+                                                            <label for="status" class="block mb-2 text-sm font-medium text-gray-900">Status</label>
+                                                            <select name="status" id="status" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5" required>
+                                                                <option value="available" {{ (isset($menu) && $menu->status == 'available') ? 'selected' : '' }}>Available</option>
+                                                                <option value="unavailable" {{ (isset($menu) && $menu->status == 'unavailable') ? 'selected' : '' }}>Unavailable</option>
+                                                            </select>
                                                         </div>
                                                         <div>
                                                             <label for="price" class="block mb-2 text-sm font-medium text-gray-900">Price</label>
@@ -210,6 +224,13 @@
                         <div class="sm:col-span-2">
                             <label for="description" class="block mb-2 text-sm font-medium text-gray-900">Description</label>
                             <textarea name="description" id="description" rows="4" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-primary-500 focus:border-primary-500"></textarea>
+                        </div>
+                        <div>
+                            <label for="status" class="block mb-2 text-sm font-medium text-gray-900">Status</label>
+                            <select name="status" id="status" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5" required>
+                                <option value="available" {{ (isset($menu) && $menu->status == 'available') ? 'selected' : '' }}>Available</option>
+                                <option value="unavailable" {{ (isset($menu) && $menu->status == 'unavailable') ? 'selected' : '' }}>Unavailable</option>
+                            </select>
                         </div>
                         <div>
                             <label for="price" class="block mb-2 text-sm font-medium text-gray-900">Price</label>

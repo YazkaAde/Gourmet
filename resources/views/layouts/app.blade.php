@@ -14,6 +14,10 @@
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
+        <!-- Real-time Updates Script -->
+        @if(Auth::check() && (Auth::user()->role === 'cashier' || Auth::user()->role === 'customer'))
+        <script src="{{ asset('js/realtime-updates.js') }}"></script>
+        @endif
     </head>
     <body class="font-sans antialiased">
         @php

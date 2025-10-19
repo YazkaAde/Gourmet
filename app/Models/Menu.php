@@ -17,7 +17,12 @@ class Menu extends Model
         'description',
         'price',
         'image_url',
-        'order_count'
+        'order_count',
+        'status'
+    ];
+
+    protected $attributes = [
+        'status' => 'available'
     ];
 
     public function category()
@@ -55,5 +60,20 @@ class Menu extends Model
             ->mapWithKeys(function ($item) {
                 return [$item->rating => $item->count];
             });
+    }
+
+    public function scopeAvailable($query)
+    {
+        return $query->where('status', 'available');
+    }
+
+    public function scopeUnavailable($query)
+    {
+        return $query->where('status', 'unavailable');
+    }
+
+    public function getIsAvailableAttribute()
+    {
+        return $this->status === 'available';
     }
 }

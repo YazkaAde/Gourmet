@@ -44,6 +44,18 @@ Route::middleware(['auth', CheckBlacklist::class])->group(function () {
 
 });
 
+Route::middleware(['auth', CheckBlacklist::class])->prefix('api')->group(function() {
+    // Cashier real-time endpoints
+    Route::get('/cashier/dashboard-stats', [\App\Http\Controllers\Cashier\DashboardController::class, 'getStats'])->name('api.cashier.dashboard-stats');
+    Route::get('/cashier/orders-count', [\App\Http\Controllers\Cashier\OrderController::class, 'getOrdersCount'])->name('api.cashier.orders-count');
+    Route::get('/cashier/payments-count', [PaymentController::class, 'getPaymentsCount'])->name('api.cashier.payments-count');
+    Route::get('/cashier/reservations-count', [\App\Http\Controllers\Cashier\ReservationController::class, 'getReservationsCount'])->name('api.cashier.reservations-count');
+    
+    // Customer real-time endpoints
+    Route::get('/customer/orders-updates', [OrderController::class, 'getOrdersUpdates'])->name('api.customer.orders-updates');
+    Route::get('/customer/reservations-updates', [ReservationController::class, 'getReservationsUpdates'])->name('api.customer.reservations-updates');
+});
+
 // Admin Routes
 Route::middleware(['auth', 'role:admin', CheckBlacklist::class])->prefix('admin')->name('admin.')->group(function() {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -96,7 +108,7 @@ Route::middleware(['auth', 'role:admin', CheckBlacklist::class])->prefix('admin'
 // Cashier Routes
 Route::middleware(['auth', 'role:cashier', CheckBlacklist::class])->prefix('cashier')->name('cashier.')->group(function() {
     Route::get('/dashboard', [\App\Http\Controllers\Cashier\DashboardController::class, 'index'])->name('dashboard');
-    
+
     // Sales Report
     Route::prefix('sales-report')->name('sales-report.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Cashier\SalesReportController::class, 'index'])->name('index');
@@ -127,6 +139,13 @@ Route::middleware(['auth', 'role:cashier', CheckBlacklist::class])->prefix('cash
             Route::get('/', [\App\Http\Controllers\Cashier\ReservationController::class, 'index'])->name('index');
             Route::get('/{reservation}', [\App\Http\Controllers\Cashier\ReservationController::class, 'show'])->name('show');
             Route::patch('/{reservation}/status', [\App\Http\Controllers\Cashier\ReservationController::class, 'updateStatus'])->name('update-status');
+        });
+
+        // Menu Management Routes untuk Cashier
+        Route::prefix('menus')->name('menus.')->group(function() {
+            Route::get('/', [\App\Http\Controllers\Cashier\MenuController::class, 'index'])->name('index');
+            Route::patch('/{menu}/toggle-status', [\App\Http\Controllers\Cashier\MenuController::class, 'toggleStatus'])->name('toggle-status');
+            Route::get('/status-counts', [\App\Http\Controllers\Cashier\MenuController::class, 'getStatusCounts'])->name('status-counts');
         });
     });
 

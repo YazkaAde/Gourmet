@@ -50,4 +50,33 @@ class OrderController extends Controller
 
         return back()->with('success', 'Order status updated successfully.');
     }
+
+    public function getOrdersCount()
+    {
+        $pendingOrders = Order::where('status', 'pending')->count();
+        $processingOrders = Order::where('status', 'processing')->count();
+        
+        $recentOrders = Order::with(['user', 'payment'])
+            ->whereDate('created_at', now()->toDateString())
+            ->orderBy('created_at', 'desc')
+            ->take(5)
+            ->get()
+            ->map(function($order) {
+                return [
+                    'id' => $order->id,
+                    'customer' => $order->user->name,
+                    'table' => $order->table_number,
+                    'amount' => $order->total_price,
+                    'status' => $order->status,
+                    'created_at' => $order->created_at->format('H:i')
+                ];
+            });
+
+        return response()->json([
+            'pendingOrders' => $pendingOrders,
+            'processingOrders' => $processingOrders,
+            'recentOrders' => $recentOrders,
+            'lastUpdate' => now()->toISOString()
+        ]);
+    }
 }

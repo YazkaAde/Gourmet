@@ -478,4 +478,36 @@ class ReservationController extends Controller
             ->with('success', 'Reservasi berhasil dibatalkan.' . ($cancellationFee > 0 ? 
                 " Cancellation fee: Rp " . number_format($cancellationFee, 0) : ''));
     }
+
+    public function getReservationsUpdates()
+    {
+        $user = Auth::user();
+        
+        $reservations = Reservation::where('user_id', $user->id)
+            ->with(['table', 'orderItems.menu', 'payments'])
+            ->orderBy('reservation_date', 'desc')
+            ->orderBy('reservation_time', 'desc')
+            ->get()
+            ->map(function($reservation) {
+                $totalPaid = $reservation->payments()->where('status', 'paid')->sum('amount');
+                
+                return [
+                    'id' => $reservation->id,
+                    'status' => $reservation->status,
+                    'table_number' => $reservation->table_number,
+                    'reservation_date' => $reservation->reservation_date->format('M d, Y'),
+                    'reservation_time' => $reservation->reservation_time,
+                    'total_amount' => $reservation->total_amount,
+                    'total_paid' => $totalPaid,
+                    'remaining_payment' => max($reservation->total_amount - $totalPaid, 0),
+                    'items_count' => $reservation->orderItems->count(),
+                    'payments_count' => $reservation->payments->count()
+                ];
+            });
+
+        return response()->json([
+            'reservations' => $reservations,
+            'lastUpdate' => now()->toISOString()
+        ]);
+    }
 }

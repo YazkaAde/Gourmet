@@ -40,4 +40,18 @@ class ReservationController extends Controller
 
         return back()->with('success', 'Reservation has been cancelled.');
     }
+
+    public function getReservationsCount()
+    {
+        $pendingReservations = Reservation::where('status', 'pending')->count();
+        $confirmedReservations = Reservation::where('status', 'confirmed')->count();
+        $todayReservations = Reservation::whereDate('reservation_date', now()->toDateString())->count();
+
+        return response()->json([
+            'pendingReservations' => $pendingReservations,
+            'confirmedReservations' => $confirmedReservations,
+            'todayReservations' => $todayReservations,
+            'lastUpdate' => now()->toISOString()
+        ]);
+    }
 }

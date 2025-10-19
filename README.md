@@ -66,10 +66,10 @@ target
 4. membuat dashboard untuk cashier
 5. menyelesaikan dashboard admin v
 6. menyelesaikan logic untuk payment reservasi v
-7. membuat laporan penjualan
+7. membuat laporan penjualan v
 8. membuat kolom note untuk order menu biasa
 9. membuat fitur tambah order sebelum complete
-10. membuat fitur menu ready or not
+10. membuat fitur menu ready or not v
 
 
 terimakasih telah membantu saya sejauh ini. sekarang bisakah kamu membuat bagian untuk menampilkan reservation proof yang mencakup
@@ -80,4 +80,6 @@ terimakasih telah membantu saya sejauh ini. sekarang bisakah kamu membuat bagian
 5. informasi pembayaran = jumlah masing-masing harga, total harga dan sisa uang yang belum dibayarkan
 
 memperbaiki recipe dari reservasi, menu yang dipesan tidak tampil
+
+saya ingin menambahkan fitur baru yaitu ketika customer sudah membeli item customer masih bisa menambahkan item atau jumlah item, namun tidak dapat mengurangi item ataupun jumlah item. user bisa menambahkan item ketika sudah dipesan misal status masih pending atau process, namun jika sudah complete ya tidak bisa, seperti saat ini. jika customer merubah pesanan maka akan ada tombol confirmasi sebagai verifikasi, apakah customer benar benar ingin merubah pesanan. tambahkan juga informasi jika customer melakukan perubahan maka pesanan tidak dapat dikurangi lagi
 

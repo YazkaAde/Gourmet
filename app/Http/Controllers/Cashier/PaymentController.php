@@ -132,4 +132,44 @@ class PaymentController extends Controller
             }
         }
     }
+
+    public function getPaymentsCount()
+    {
+        $pendingPayments = Payment::where('status', 'pending')->count();
+        $paidPayments = Payment::where('status', 'paid')->count();
+        
+        $recentPayments = Payment::with(['order.user', 'reservation.user'])
+            ->where('status', 'pending')
+            ->orderBy('created_at', 'desc')
+            ->take(5)
+            ->get()
+            ->map(function($payment) {
+                $customerName = 'Customer Not Found';
+                $type = 'N/A';
+                
+                if ($payment->order_id && $payment->order) {
+                    $customerName = $payment->order->user->name;
+                    $type = 'Order #' . $payment->order_id;
+                } elseif ($payment->reservation_id && $payment->reservation) {
+                    $customerName = $payment->reservation->user->name;
+                    $type = 'Reservation #' . $payment->reservation_id;
+                }
+                
+                return [
+                    'id' => $payment->id,
+                    'customer' => $customerName,
+                    'type' => $type,
+                    'amount' => $payment->amount,
+                    'method' => $payment->payment_method,
+                    'created_at' => $payment->created_at->format('H:i')
+                ];
+            });
+
+        return response()->json([
+            'pendingPayments' => $pendingPayments,
+            'paidPayments' => $paidPayments,
+            'recentPayments' => $recentPayments,
+            'lastUpdate' => now()->toISOString()
+        ]);
+    }
 }

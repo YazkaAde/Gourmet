@@ -38,10 +38,22 @@ class CartController extends Controller
             'menu_id' => 'required|exists:menus,id',
             'quantity' => 'required|integer|min:1'
         ]);
-
+    
         $menu = Menu::findOrFail($request->menu_id);
+        
+        if ($menu->status !== 'available') {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This menu item is currently unavailable'
+                ], 400);
+            }
+            
+            return redirect()->back()->with('error', 'This menu item is currently unavailable!');
+        }
+    
         $totalPrice = $menu->price * $request->quantity;
-
+    
         $cart = auth()->user()->carts()
             ->where('menu_id', $request->menu_id)
             ->first();

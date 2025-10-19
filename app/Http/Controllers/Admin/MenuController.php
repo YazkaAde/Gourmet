@@ -30,6 +30,7 @@ class MenuController extends Controller
             'description' => 'required',
             'price' => 'required|numeric|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'status' => 'required|in:available,unavailable',
         ]);
 
         $imagePath = null;
@@ -44,6 +45,7 @@ class MenuController extends Controller
             'description' => $validated['description'],
             'price' => $validated['price'],
             'image_url' => $imagePath,
+            'status' => $validated['status'],
         ]);
 
         return redirect()->route('admin.menus.index')->with('success', 'Menu created successfully!');
@@ -59,6 +61,7 @@ class MenuController extends Controller
             'description' => 'required',
             'price' => 'required|numeric|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'status' => 'required|in:available,unavailable',
         ]);
 
         $imagePath = $menu->image_url;
@@ -73,6 +76,7 @@ class MenuController extends Controller
             'description' => $validated['description'],
             'price' => $validated['price'],
             'image_url' => $imagePath,
+            'status' => $validated['status'],
         ]);
 
         return redirect()->route('admin.menus.index')->with('success', 'Menu updated successfully!');

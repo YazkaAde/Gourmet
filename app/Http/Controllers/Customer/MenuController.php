@@ -11,7 +11,9 @@ class MenuController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Menu::with('category')->orderBy('order_count', 'desc');
+        $query = Menu::with('category')
+            ->orderBy('status', 'asc')
+            ->orderBy('order_count', 'desc');
         
         if ($request->has('category')) {
             $query->where('category_id', $request->category);

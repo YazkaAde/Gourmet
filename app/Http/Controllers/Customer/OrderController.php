@@ -166,4 +166,30 @@ class OrderController extends Controller
             $reservation->update(['status' => 'completed']);
         }
     }
+
+    public function getOrdersUpdates()
+    {
+        $user = Auth::user();
+        
+        $orders = Order::with(['orderItems.menu', 'payment'])
+            ->where('user_id', $user->id)
+            ->whereNull('reservation_id')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function($order) {
+                return [
+                    'id' => $order->id,
+                    'status' => $order->status,
+                    'total_price' => $order->total_price,
+                    'payment_status' => $order->payment ? $order->payment->status : null,
+                    'created_at' => $order->created_at->format('M d, Y H:i'),
+                    'items_count' => $order->orderItems->count()
+                ];
+            });
+
+        return response()->json([
+            'orders' => $orders,
+            'lastUpdate' => now()->toISOString()
+        ]);
+    }
 }

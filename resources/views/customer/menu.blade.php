@@ -33,30 +33,73 @@
             <!-- Menu Items -->
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 @foreach($menus as $menu)
-                <article class="bg-white hover:bg-gray-50 flex flex-col rounded-lg border border-gray-300 p-5 shadow-sm hover:shadow-md transition-shadow h-full">
-                    <div class="flex-grow">
+                <article class="bg-white flex flex-col rounded-lg border border-gray-200 p-5 shadow-sm h-full relative
+                    @if($menu->status == 'available') 
+                        hover:bg-gray-50 hover:shadow-md transition-all duration-200 
+                    @else 
+                        bg-gray-50 border-gray-300
+                    @endif">
+                    
+                    <!-- Overlay untuk unavailable items -->
+                    @if($menu->status == 'unavailable')
+                        <div class="absolute inset-0 bg-white bg-opacity-80 rounded-lg z-10 backdrop-blur-[1px] flex items-center justify-center">
+                            <div class="text-center p-4 bg-white rounded-lg shadow-sm border border-gray-200 mx-4">
+                                <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-3 border border-red-100">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                    </svg>
+                                </div>
+                                <p class="text-red-600 font-semibold text-sm mb-1">Currently Unavailable</p>
+                                <p class="text-gray-500 text-xs">We'll be back soon!</p>
+                            </div>
+                        </div>
+                    @endif
+
+                    <div class="flex-grow relative">
                         <div class="flex justify-between items-start mb-4">
                             <div class="flex-grow">
-                                <h3 class="font-bold text-lg text-gray-900 mb-1">{{ $menu->name }}</h3>
-                                <p class="text-gray-500 text-sm mb-2">{{ $menu->category->name }}</p>
-                                <p class="text-gray-500 text-sm mb-4">{{ Str::limit($menu->description, 50) }}</p>
-                                <p class="font-semibold text-gray-900 text-lg">Rp {{ number_format($menu->price, 0) }}</p>
+                                <div class="flex items-start gap-2 mb-2">
+                                    <h3 class="font-bold text-lg 
+                                        @if($menu->status == 'unavailable') text-gray-500 @else text-gray-900 @endif">
+                                        {{ $menu->name }}
+                                    </h3>
+                                    @if($menu->status == 'unavailable')
+                                        <span class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded-full border border-red-200 font-medium shrink-0 mt-0.5">
+                                            Unavailable
+                                        </span>
+                                    @endif
+                                </div>
+                                <p class="text-sm mb-2 
+                                    @if($menu->status == 'unavailable') text-gray-400 @else text-gray-600 @endif">
+                                    {{ $menu->category->name }}
+                                </p>
+                                <p class="text-sm mb-4 
+                                    @if($menu->status == 'unavailable') text-gray-400 @else text-gray-500 @endif">
+                                    {{ Str::limit($menu->description, 60) }}
+                                </p>
+                                <p class="font-semibold text-lg 
+                                    @if($menu->status == 'unavailable') text-gray-500 @else text-gray-900 @endif">
+                                    Rp {{ number_format($menu->price, 0) }}
+                                </p>
                             </div>
                             @if($menu->image_url)
                             <div class="ml-4 flex-shrink-0">
                                 <img 
                                     src="{{ asset('storage/' . $menu->image_url) }}" 
                                     alt="{{ $menu->name }}"
-                                    class="w-24 h-24 object-cover rounded-lg"
+                                    class="w-20 h-20 object-cover rounded-lg 
+                                        @if($menu->status == 'unavailable') opacity-60 @else border border-gray-200 @endif"
                                     onerror="this.style.display='none'"/>
                             </div>
                             @endif
                         </div>
                     </div>
 
-                    <!-- Di dalam article menu card, tambahkan: -->
-                    <div class="flex items-center mb-3">
-                        <div class="flex text-yellow-400">
+                    <!-- Rating Section -->
+                    @if($menu->rating_count > 0)
+                    <div class="flex items-center mb-4">
+                        <div class="flex text-yellow-400 
+                            @if($menu->status == 'unavailable') opacity-50 @endif">
                             @for($i = 1; $i <= 5; $i++)
                                 @if($i <= floor($menu->average_rating))
                                     ★
@@ -67,45 +110,76 @@
                                 @endif
                             @endfor
                         </div>
-                        <span class="text-sm text-gray-600 ml-2">
+                        <span class="text-sm ml-2 
+                            @if($menu->status == 'unavailable') text-gray-400 @else text-gray-600 @endif">
                             ({{ number_format($menu->average_rating, 1) }}) • {{ $menu->rating_count }} reviews
                         </span>
                     </div>
+                    @else
+                    <div class="flex items-center mb-4">
+                        <div class="flex text-gray-300 
+                            @if($menu->status == 'unavailable') opacity-50 @endif">
+                            @for($i = 1; $i <= 5; $i++)
+                                ☆
+                            @endfor
+                        </div>
+                        <span class="text-sm ml-2 
+                            @if($menu->status == 'unavailable') text-gray-400 @else text-gray-500 @endif">
+                            No reviews yet
+                        </span>
+                    </div>
+                    @endif
                     
-                    <form action="{{ route('customer.cart.store') }}" method="POST" class="mt-4">
-                        @csrf
-                        <input type="hidden" name="menu_id" value="{{ $menu->id }}">
-                        <div class="flex items-center gap-2">
-                            <div class="flex items-center border border-gray-300 rounded-lg overflow-hidden">
-                                <button type="button"
-                                        class="quantity-decrement px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold disabled:opacity-40 disabled:cursor-not-allowed"
-                                        aria-label="Kurangi satu">
-                                    −
-                                </button>
+                    <!-- Add to Cart Form -->
+                    @if($menu->status == 'available')
+                        <form action="{{ route('customer.cart.store') }}" method="POST" class="mt-auto">
+                            @csrf
+                            <input type="hidden" name="menu_id" value="{{ $menu->id }}">
+                            <div class="flex items-center gap-2">
+                                <div class="flex items-center border border-gray-300 rounded-lg overflow-hidden bg-white">
+                                    <button type="button"
+                                            class="quantity-decrement px-3 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                            aria-label="Kurangi satu">
+                                        −
+                                    </button>
 
-                                <input type="number"
-                                       name="quantity"
-                                       value="1"
-                                       min="1"
-                                       class="quantity-input w-16 text-center border-x border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 py-2">
+                                    <input type="number"
+                                           name="quantity"
+                                           value="1"
+                                           min="1"
+                                           class="quantity-input w-16 text-center border-x border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 py-2 bg-white">
 
-                                <button type="button"
-                                        class="quantity-increment px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold"
-                                        aria-label="Tambah satu">
-                                    +
+                                    <button type="button"
+                                            class="quantity-increment px-3 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 font-bold transition-colors"
+                                            aria-label="Tambah satu">
+                                        +
+                                    </button>
+                                </div>
+
+                                <!-- Add to Cart Button -->
+                                <button type="submit" 
+                                        class="flex-1 bg-primary-600 hover:bg-primary-700 text-white py-2 px-4 rounded-lg transition flex items-center justify-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+                                    </svg>
+                                    Add
                                 </button>
                             </div>
-
-                            <!-- Add to Cart -->
-                            <button type="submit" 
-                                    class="flex-1 bg-primary-600 hover:bg-primary-700 text-white py-2 px-4 rounded-lg transition flex items-center justify-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
-                                </svg>
-                                Add
-                            </button>
+                        </form>
+                    @else
+                        <!-- Unavailable State - Informative but non-interactive -->
+                        <div class="mt-auto p-3 bg-gray-100 rounded-lg border border-gray-200">
+                            <div class="text-center">
+                                <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <p class="text-gray-600 text-sm font-medium mb-1">Temporarily Unavailable</p>
+                                <p class="text-gray-500 text-xs">We're restocking this item</p>
+                            </div>
                         </div>
-                    </form>
+                    @endif
                 </article>
                 @endforeach
             </div>
@@ -115,7 +189,7 @@
                 {{ $menus->links() }}
             </div>
 
-            <!-- Cart Button -->
+            <!-- Cart & Reservation Buttons -->
             <a href="{{ route('customer.cart.index') }}" 
                 class="fixed right-0 top-1/2 transform -translate-y-1/2 floating-btn bg-primary-600 text-white flex items-center justify-end overflow-hidden transition-all duration-300 ease-in-out w-12 hover:w-44 rounded-l-lg shadow-lg group z-50"
                 id="cart-btn">
@@ -131,7 +205,6 @@
                 </div>
             </a>
 
-            <!-- Reservation Button -->
             <a href="{{ route('customer.reservations.create') }}" 
                 class="fixed right-0 top-1/2 transform -translate-y-1/2 mt-16 floating-btn bg-green-600 text-white flex items-center justify-end overflow-hidden transition-all duration-300 ease-in-out w-12 hover:w-44 rounded-l-lg shadow-lg group z-50"
                 id="reservation-btn">
@@ -146,7 +219,6 @@
                     </div>
                 </div>
             </a>
-
         </div>
     </div>
 
@@ -177,6 +249,11 @@
         .floating-btn:hover {
             width: 9rem !important;
         }
+
+        /* Style untuk card unavailable */
+        article {
+            position: relative;
+        }
     </style>
 
     <script>
@@ -194,6 +271,12 @@
             }
 
             document.addEventListener('click', function(e) {
+                // Hanya proses quantity controls untuk menu yang available
+                const article = e.target.closest('article');
+                if (article && article.classList.contains('bg-gray-50')) {
+                    return; // Skip untuk menu unavailable
+                }
+
                 const incrementBtn = e.target.closest('.quantity-increment');
                 const decrementBtn = e.target.closest('.quantity-decrement');
 

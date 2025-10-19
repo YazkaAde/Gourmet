@@ -31,7 +31,7 @@
                         </div>
                         <div>
                             <p class="text-sm font-medium opacity-90">Today's Orders</p>
-                            <p class="text-2xl font-bold">{{ $todayOrders ?? 0 }}</p>
+                            <p class="text-2xl font-bold" data-card="today-orders">{{ $todayOrders ?? 0 }}</p>
                             <p class="text-xs opacity-80 mt-1">Orders placed today</p>
                         </div>
                     </div>
@@ -47,7 +47,7 @@
                         </div>
                         <div>
                             <p class="text-sm font-medium opacity-90">Today's Revenue</p>
-                            <p class="text-2xl font-bold">Rp {{ number_format($todayRevenue ?? 0, 0, ',', '.') }}</p>
+                            <p class="text-2xl font-bold" data-card="today-revenue">Rp {{ number_format($todayRevenue ?? 0, 0, ',', '.') }}</p>
                             <p class="text-xs opacity-80 mt-1">Paid orders only</p>
                         </div>
                     </div>
@@ -63,7 +63,7 @@
                         </div>
                         <div>
                             <p class="text-sm font-medium opacity-90">Pending Payments</p>
-                            <p class="text-2xl font-bold">{{ $pendingPayments ?? 0 }}</p>
+                            <p class="text-2xl font-bold" data-card="pending-payments">{{ $pendingPayments ?? 0 }}</p>
                             <p class="text-xs opacity-80 mt-1">Waiting confirmation</p>
                         </div>
                     </div>
@@ -79,7 +79,7 @@
                         </div>
                         <div>
                             <p class="text-sm font-medium opacity-90">Today's Reservations</p>
-                            <p class="text-2xl font-bold">{{ $todayReservations ?? 0 }}</p>
+                            <p class="text-2xl font-bold" data-card="today-reservations">{{ $todayReservations ?? 0 }}</p>
                             <p class="text-xs opacity-80 mt-1">Scheduled for today</p>
                         </div>
                     </div>
@@ -104,14 +104,14 @@
                             <a href="{{ route('cashier.orders.index', ['status' => 'pending']) }}" 
                                class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition">
                                 <span class="text-yellow-800 font-medium">Pending Orders</span>
-                                <span class="bg-yellow-500 text-white px-2 py-1 rounded-full text-sm">
+                                <span class="bg-yellow-500 text-white px-2 py-1 rounded-full text-sm" data-badge="pending-orders">
                                     {{ $pendingOrders ?? 0 }}
                                 </span>
                             </a>
                             <a href="{{ route('cashier.orders.index', ['status' => 'processing']) }}" 
                                class="flex items-center justify-between p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition">
                                 <span class="text-blue-800 font-medium">Processing Orders</span>
-                                <span class="bg-blue-500 text-white px-2 py-1 rounded-full text-sm">
+                                <span class="bg-blue-500 text-white px-2 py-1 rounded-full text-sm" data-badge="processing-orders">
                                     {{ $processingOrders ?? 0 }}
                                 </span>
                             </a>
@@ -142,14 +142,14 @@
                             <a href="{{ route('cashier.payments.index', ['status' => 'pending']) }}" 
                                class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition">
                                 <span class="text-yellow-800 font-medium">Pending Payments</span>
-                                <span class="bg-yellow-500 text-white px-2 py-1 rounded-full text-sm">
+                                <span class="bg-yellow-500 text-white px-2 py-1 rounded-full text-sm" data-badge="pending-payments-badge">
                                     {{ $pendingPayments ?? 0 }}
                                 </span>
                             </a>
                             <a href="{{ route('cashier.payments.index', ['status' => 'paid']) }}" 
                                class="flex items-center justify-between p-3 bg-green-50 rounded-lg hover:bg-green-100 transition">
                                 <span class="text-green-800 font-medium">Paid Payments</span>
-                                <span class="bg-green-500 text-white px-2 py-1 rounded-full text-sm">
+                                <span class="bg-green-500 text-white px-2 py-1 rounded-full text-sm" data-badge="paid-payments">
                                     {{ $paidPayments ?? 0 }}
                                 </span>
                             </a>
@@ -180,14 +180,14 @@
                             <a href="{{ route('cashier.reservations.index', ['status' => 'pending']) }}" 
                                class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition">
                                 <span class="text-yellow-800 font-medium">Pending Reservations</span>
-                                <span class="bg-yellow-500 text-white px-2 py-1 rounded-full text-sm">
+                                <span class="bg-yellow-500 text-white px-2 py-1 rounded-full text-sm" data-badge="pending-reservations">
                                     {{ $pendingReservations ?? 0 }}
                                 </span>
                             </a>
                             <a href="{{ route('cashier.reservations.index', ['status' => 'confirmed']) }}" 
                                class="flex items-center justify-between p-3 bg-green-50 rounded-lg hover:bg-green-100 transition">
                                 <span class="text-green-800 font-medium">Confirmed Reservations</span>
-                                <span class="bg-green-500 text-white px-2 py-1 rounded-full text-sm">
+                                <span class="bg-green-500 text-white px-2 py-1 rounded-full text-sm" data-badge="confirmed-reservations">
                                     {{ $confirmedReservations ?? 0 }}
                                 </span>
                             </a>
@@ -216,41 +216,43 @@
                             </a>
                         </div>
                         
-                        @if($recentOrders->count() > 0)
-                        <div class="space-y-4">
-                            @foreach($recentOrders as $order)
-                            <div class="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                                        </svg>
+                        <div data-container="recent-orders">
+                            @if($recentOrders->count() > 0)
+                            <div class="space-y-4">
+                                @foreach($recentOrders as $order)
+                                <div class="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium text-gray-900">Order #{{ $order->id }}</p>
+                                            <p class="text-sm text-gray-600">{{ $order->user->name }} • Table {{ $order->table_number }}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p class="font-medium text-gray-900">Order #{{ $order->id }}</p>
-                                        <p class="text-sm text-gray-600">{{ $order->user->name }} • Table {{ $order->table_number }}</p>
+                                    <div class="text-right">
+                                        <p class="font-semibold text-gray-900">Rp {{ number_format($order->total_price, 0) }}</p>
+                                        <span class="px-2 py-1 text-xs rounded-full 
+                                            @if($order->status == 'completed') bg-green-100 text-green-800
+                                            @elseif($order->status == 'processing') bg-yellow-100 text-yellow-800
+                                            @else bg-blue-100 text-blue-800 @endif">
+                                            {{ ucfirst($order->status) }}
+                                        </span>
                                     </div>
                                 </div>
-                                <div class="text-right">
-                                    <p class="font-semibold text-gray-900">Rp {{ number_format($order->total_price, 0) }}</p>
-                                    <span class="px-2 py-1 text-xs rounded-full 
-                                        @if($order->status == 'completed') bg-green-100 text-green-800
-                                        @elseif($order->status == 'processing') bg-yellow-100 text-yellow-800
-                                        @else bg-blue-100 text-blue-800 @endif">
-                                        {{ ucfirst($order->status) }}
-                                    </span>
-                                </div>
+                                @endforeach
                             </div>
-                            @endforeach
+                            @else
+                            <div class="text-center py-8">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                </svg>
+                                <p class="mt-2 text-sm text-gray-500">No recent orders</p>
+                            </div>
+                            @endif
                         </div>
-                        @else
-                        <div class="text-center py-8">
-                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                            </svg>
-                            <p class="mt-2 text-sm text-gray-500">No recent orders</p>
-                        </div>
-                        @endif
                     </div>
                 </div>
 
@@ -265,46 +267,48 @@
                             </a>
                         </div>
                         
-                        @if($recentPayments->count() > 0)
-                        <div class="space-y-4">
-                            @foreach($recentPayments as $payment)
-                            <div class="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
-                                        <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
-                                        </svg>
+                        <div data-container="recent-payments">
+                            @if($recentPayments->count() > 0)
+                            <div class="space-y-4">
+                                @foreach($recentPayments as $payment)
+                                <div class="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                                            <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium text-gray-900">Payment #{{ $payment->id }}</p>
+                                            <p class="text-sm text-gray-600">
+                                                @if($payment->order_id && $payment->order)
+                                                    {{ $payment->order->user->name }} • Order #{{ $payment->order_id }}
+                                                @elseif($payment->reservation_id && $payment->reservation)
+                                                    {{ $payment->reservation->user->name }} • Reservation #{{ $payment->reservation_id }}
+                                                @else
+                                                    Customer Not Found
+                                                @endif
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p class="font-medium text-gray-900">Payment #{{ $payment->id }}</p>
-                                        <p class="text-sm text-gray-600">
-                                            @if($payment->order_id && $payment->order)
-                                                {{ $payment->order->user->name }} • Order #{{ $payment->order_id }}
-                                            @elseif($payment->reservation_id && $payment->reservation)
-                                                {{ $payment->reservation->user->name }} • Reservation #{{ $payment->reservation_id }}
-                                            @else
-                                                Customer Not Found
-                                            @endif
-                                        </p>
+                                    <div class="text-right">
+                                        <p class="font-semibold text-gray-900">Rp {{ number_format($payment->amount, 0) }}</p>
+                                        <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
+                                            {{ ucfirst($payment->payment_method) }}
+                                        </span>
                                     </div>
                                 </div>
-                                <div class="text-right">
-                                    <p class="font-semibold text-gray-900">Rp {{ number_format($payment->amount, 0) }}</p>
-                                    <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
-                                        {{ ucfirst($payment->payment_method) }}
-                                    </span>
-                                </div>
+                                @endforeach
                             </div>
-                            @endforeach
+                            @else
+                            <div class="text-center py-8">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                                </svg>
+                                <p class="mt-2 text-sm text-gray-500">No pending payments</p>
+                            </div>
+                            @endif
                         </div>
-                        @else
-                        <div class="text-center py-8">
-                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
-                            </svg>
-                            <p class="mt-2 text-sm text-gray-500">No pending payments</p>
-                        </div>
-                        @endif
                     </div>
                 </div>
             </div>
@@ -336,6 +340,116 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Real-time Update Indicator -->
+            <div class="mt-4 text-center">
+                <div class="inline-flex items-center px-3 py-1 rounded-full text-xs bg-gray-100 text-gray-600">
+                    <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse" id="update-indicator"></span>
+                    <span id="last-update-time">Last update: {{ now()->format('H:i:s') }}</span>
+                </div>
+            </div>
         </div>
     </div>
+
+    <!-- Real-time Updates Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const realTimeUpdates = new RealTimeUpdates();
+            realTimeUpdates.init();
+        });
+
+        class RealTimeUpdates {
+            constructor() {
+                this.updateInterval = 5000;
+                this.pollingInterval = null;
+                this.lastUpdate = new Date();
+            }
+
+            init() {
+                this.startPolling();
+                this.updateLastUpdateTime();
+            }
+
+            startPolling() {
+                // Start polling immediately
+                this.fetchDashboardData();
+                
+                this.pollingInterval = setInterval(() => {
+                    this.fetchDashboardData();
+                }, this.updateInterval);
+            }
+
+            async fetchDashboardData() {
+                try {
+                    const response = await fetch('/api/cashier/dashboard-stats');
+                    const data = await response.json();
+                    
+                    this.updateDashboard(data);
+                    this.showUpdateIndicator();
+                    this.updateLastUpdateTime();
+                } catch (error) {
+                    console.error('Error fetching dashboard data:', error);
+                }
+            }
+
+            updateDashboard(data) {
+                // Update summary cards
+                this.updateElementContent('[data-card="today-orders"]', data.todayOrders || 0);
+                this.updateElementContent('[data-card="today-revenue"]', 'Rp ' + this.formatNumber(data.todayRevenue || 0));
+                this.updateElementContent('[data-card="pending-payments"]', data.pendingPayments || 0);
+                this.updateElementContent('[data-card="today-reservations"]', data.todayReservations || 0);
+
+                // Update quick action badges
+                this.updateElementContent('[data-badge="pending-orders"]', data.pendingOrders || 0);
+                this.updateElementContent('[data-badge="processing-orders"]', data.processingOrders || 0);
+                this.updateElementContent('[data-badge="pending-payments-badge"]', data.pendingPayments || 0);
+                this.updateElementContent('[data-badge="paid-payments"]', data.paidPayments || 0);
+                this.updateElementContent('[data-badge="pending-reservations"]', data.pendingReservations || 0);
+                this.updateElementContent('[data-badge="confirmed-reservations"]', data.confirmedReservations || 0);
+            }
+
+            updateElementContent(selector, content) {
+                const element = document.querySelector(selector);
+                if (element) {
+                    element.textContent = content;
+                }
+            }
+
+            formatNumber(number) {
+                return parseInt(number).toLocaleString('id-ID');
+            }
+
+            showUpdateIndicator() {
+                const indicator = document.getElementById('update-indicator');
+                if (indicator) {
+                    indicator.classList.add('bg-green-500');
+                    indicator.classList.remove('bg-gray-400');
+                    
+                    indicator.classList.remove('animate-pulse');
+                    void indicator.offsetWidth;
+                    indicator.classList.add('animate-pulse');
+                }
+            }
+
+            updateLastUpdateTime() {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('id-ID', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+                
+                const timeElement = document.getElementById('last-update-time');
+                if (timeElement) {
+                    timeElement.textContent = `Last update: ${timeString}`;
+                }
+            }
+
+            destroy() {
+                if (this.pollingInterval) {
+                    clearInterval(this.pollingInterval);
+                }
+            }
+        }
+    </script>
 </x-app-layout>

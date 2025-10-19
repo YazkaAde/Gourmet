@@ -58,4 +58,40 @@ class DashboardController extends Controller
             'recentPayments'
         ));
     }
+
+    public function getStats()
+    {
+        $today = now();
+        
+        $todayOrders = Order::whereDate('created_at', $today->toDateString())->count();
+        $todayRevenue = Order::whereDate('created_at', $today->toDateString())
+            ->whereHas('payment', function($query) {
+                $query->where('status', 'paid');
+            })
+            ->sum('total_price');
+
+        $pendingPayments = Payment::where('status', 'pending')->count();
+        $paidPayments = Payment::where('status', 'paid')->count();
+
+        $pendingOrders = Order::where('status', 'pending')->count();
+        $processingOrders = Order::where('status', 'processing')->count();
+
+        $todayReservations = Reservation::whereDate('reservation_date', $today->toDateString())->count();
+        $pendingReservations = Reservation::where('status', 'pending')->count();
+        $confirmedReservations = Reservation::where('status', 'confirmed')->count();
+
+        return response()->json([
+            'todayOrders' => $todayOrders,
+            'todayRevenue' => $todayRevenue,
+            'pendingPayments' => $pendingPayments,
+            'paidPayments' => $paidPayments,
+            'pendingOrders' => $pendingOrders,
+            'processingOrders' => $processingOrders,
+            'todayReservations' => $todayReservations,
+            'pendingReservations' => $pendingReservations,
+            'confirmedReservations' => $confirmedReservations,
+            'lastUpdate' => now()->toISOString()
+        ]);
+    }
+
 }
