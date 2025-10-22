@@ -14,7 +14,7 @@ class SalesReportController extends Controller
     public function index(Request $request)
     {
         $today = now();
-        $type = $request->get('type', 'all');
+        $type = $request->get('type', 'daily');
         
         $ordersQuery = Order::with(['user', 'payment']);
         
@@ -65,7 +65,7 @@ class SalesReportController extends Controller
     public function export(Request $request)
     {
         try {
-            $type = $request->get('type', 'all');
+            $type = $request->get('type', 'daily');
             $today = now();
             $query = Order::with(['user', 'payment', 'orderItems.menu']);
 
@@ -162,7 +162,7 @@ class SalesReportController extends Controller
     
     public function changePeriod(Request $request)
     {
-        $type = $request->get('type', 'all');
+        $type = $request->get('type', 'daily');
         return redirect()->route('cashier.sales-report.index', ['type' => $type]);
     }
 }

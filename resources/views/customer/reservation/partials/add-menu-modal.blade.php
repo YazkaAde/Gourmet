@@ -57,7 +57,14 @@
                                                     onerror="this.style.display='none'">
                                                 @endif
                                                 <div class="flex-1">
-                                                    <h5 class="font-semibold text-gray-900">{{ $menu->name }}</h5>
+                                                    <div class="flex justify-between items-start">
+                                                        <h5 class="font-semibold text-gray-900">{{ $menu->name }}</h5>
+                                                        {{-- Status Badge --}}
+                                                        <span class="px-2 py-1 text-xs rounded-full font-medium 
+                                                            {{ $menu->status == 'available' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200' }}">
+                                                            {{ ucfirst($menu->status) }}
+                                                        </span>
+                                                    </div>
                                                     <p class="text-sm text-gray-600 mb-2">{{ $menu->category->name }}</p>
                                                     <p class="text-sm text-gray-600 mb-2">{{ Str::limit($menu->description, 100) }}</p>
                                                     
@@ -75,16 +82,18 @@
                                                             @endfor
                                                         </div>
                                                         <span class="text-xs text-gray-600 ml-2">
-                                                            ({{ number_format($menu->average_rating, 1) }}) • {{ $menu->rating_count }} reviews
+                                                            ({{ number_format($menu->average_rating, 1) }}) - {{ $menu->rating_count }} reviews
                                                         </span>
                                                     </div>
                                                     
                                                     <div class="flex justify-between items-center">
                                                         <p class="text-primary-600 font-bold">Rp {{ number_format($menu->price, 0) }}</p>
                                                         <button type="button" 
-                                                                onclick="addMenuItem('{{ $menu->id }}', '{{ addslashes($menu->name) }}', '{{ $menu->price }}', '{{ $menu->image_url ? asset('storage/' . $menu->image_url) : '' }}')"
-                                                                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors text-sm">
-                                                            Add to Order
+                                                            onclick="addMenuItemToReservation({{ $menu->id }}, '{{ addslashes($menu->name) }}', {{ $menu->price }})"
+                                                            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors text-sm
+                                                            {{ $menu->status != 'available' ? 'opacity-50 cursor-not-allowed' : '' }}"
+                                                            {{ $menu->status != 'available' ? 'disabled' : '' }}>
+                                                            {{ $menu->status == 'available' ? 'Add to Order' : 'Unavailable' }}
                                                         </button>
                                                     </div>
                                                 </div>
@@ -92,6 +101,50 @@
                                         </div>
                                         @endforeach
                                     </div>
+
+                                    <!-- Pagination -->
+                                    @if($menus->hasPages())
+                                    <div class="mt-6 border-t pt-4">
+                                        <div class="flex items-center justify-between">
+                                            <div class="text-sm text-gray-700">
+                                                Showing {{ $menus->firstItem() }} to {{ $menus->lastItem() }} of {{ $menus->total() }} results
+                                            </div>
+                                            <div class="flex space-x-2">
+                                                {{-- Previous Page Link --}}
+                                                @if ($menus->onFirstPage())
+                                                    <span class="px-3 py-1 bg-gray-200 text-gray-500 rounded cursor-not-allowed text-sm">Previous</span>
+                                                @else
+                                                    <button onclick="loadMenuPage('{{ $menus->previousPageUrl() }}')" 
+                                                            class="px-3 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 text-sm transition-colors">
+                                                        Previous
+                                                    </button>
+                                                @endif
+
+                                                {{-- Page Numbers --}}
+                                                @foreach ($menus->getUrlRange(1, $menus->lastPage()) as $page => $url)
+                                                    @if ($page == $menus->currentPage())
+                                                        <span class="px-3 py-1 bg-primary-600 text-white rounded text-sm">{{ $page }}</span>
+                                                    @else
+                                                        <button onclick="loadMenuPage('{{ $url }}')" 
+                                                                class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm transition-colors">
+                                                            {{ $page }}
+                                                        </button>
+                                                    @endif
+                                                @endforeach
+
+                                                {{-- Next Page Link --}}
+                                                @if ($menus->hasMorePages())
+                                                    <button onclick="loadMenuPage('{{ $menus->nextPageUrl() }}')" 
+                                                            class="px-3 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 text-sm transition-colors">
+                                                        Next
+                                                    </button>
+                                                @else
+                                                    <span class="px-3 py-1 bg-gray-200 text-gray-500 rounded cursor-not-allowed text-sm">Next</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @endif
                                 @else
                                     <div class="text-center py-8">
                                         <p class="text-gray-500">No menus available at the moment.</p>
@@ -149,7 +202,13 @@
                 </div>
             </div>
 
-            <div class="flex justify-end p-6 border-t">
+            <!-- Modal Footer -->
+            <div class="flex justify-between items-center p-6 border-t">
+                <div class="text-sm text-gray-500" id="pagination-info">
+                    @if($menus->count() > 0)
+                        Page {{ $menus->currentPage() }} of {{ $menus->lastPage() }}
+                    @endif
+                </div>
                 <button onclick="closeAddMenuModal()" 
                         class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors font-medium">
                     Close
@@ -159,8 +218,8 @@
     </div>
 </div>
 
-<!-- Single Notification Element -->
-<div id="addMenuNotification" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[60] hidden">
+<!-- Notification Element -->
+<div id="addMenuNotification" class="fixed top-4 right-4 z-[60] hidden">
     <div class="bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
@@ -169,55 +228,123 @@
     </div>
 </div>
 
-<!-- Loading Overlay -->
-<div id="loadingOverlay" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-center justify-center">
-    <div class="bg-white p-6 rounded-lg shadow-lg flex items-center gap-3">
-        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
-        <span class="text-gray-700">Loading menu items...</span>
-    </div>
-</div>
-
 <script>
-// Single notification system
+// Main function to add menu item to reservation
+// Main function to add menu item to reservation
+async function addMenuItemToReservation(menuId, menuName, menuPrice, quantity = 1) {
+    console.log('Adding menu item:', { menuId, menuName, menuPrice, quantity });
+    
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.innerHTML = 'Adding...';
+    button.disabled = true;
+    
+    try {
+        // Prepare form data
+        const formData = new FormData();
+        formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+        formData.append('menu_id', menuId);
+        formData.append('quantity', quantity);
+        
+        // Determine the correct route based on context
+        let storeRoute;
+        
+        @if(isset($reservation) && $reservation)
+            // For existing reservation (edit/show pages)
+            storeRoute = "{{ route('customer.reservations.menu.store', $reservation) }}";
+            console.log('Using reservation route:', storeRoute);
+        @else
+            // For new reservation (create page) - use different approach
+            // Add to form directly instead of AJAX call
+            console.log('No reservation yet, adding to form directly');
+            
+            // Call global function to add to form (defined in create/edit blades)
+            if (typeof window.addMenuItemToForm === 'function') {
+                window.addMenuItemToForm(menuId, menuName, menuPrice, null, quantity);
+                showAddMenuNotification('✓ Menu item added to reservation form!', 'success');
+                
+                // Restore button
+                button.innerHTML = originalText;
+                button.disabled = false;
+                return;
+            } else {
+                throw new Error('Cannot add menu item - reservation not created yet');
+            }
+        @endif
+        
+        console.log('Sending request to:', storeRoute);
+        
+        // Send request only if we have a reservation
+        @if(isset($reservation) && $reservation)
+        const response = await fetch(storeRoute, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: formData
+        });
+        
+        console.log('Response status:', response.status);
+        const data = await response.json();
+        console.log('Server response:', data);
+        
+        if (data.success) {
+            showAddMenuNotification('✓ ' + data.message, 'success');
+            
+            // Close modal after successful addition
+            setTimeout(() => {
+                closeAddMenuModal();
+                // Reload page to show changes
+                window.location.reload();
+            }, 1500);
+            
+        } else {
+            throw new Error(data.message || 'Failed to add menu item');
+        }
+        @endif
+        
+    } catch (error) {
+        console.error('Error:', error);
+        showAddMenuNotification('✗ Error: ' + error.message, 'error');
+        
+        // Restore button even on error
+        button.innerHTML = originalText;
+        button.disabled = false;
+    }
+}
+
+// Notification functions
 function showAddMenuNotification(message, type = 'success') {
     const notification = document.getElementById('addMenuNotification');
     const messageElement = document.getElementById('notificationMessage');
     
-    // Set message and styling based on type
-    messageElement.textContent = message;
-    
-    // Reset classes and set based on type
-    notification.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[60]';
-    
-    let bgColor, icon;
+    // Set background color based on type
+    let bgColor;
     switch(type) {
         case 'success':
             bgColor = 'bg-green-500';
-            icon = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
             break;
         case 'error':
             bgColor = 'bg-red-500';
-            icon = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+            break;
+        case 'info':
+            bgColor = 'bg-blue-500';
             break;
         default:
             bgColor = 'bg-blue-500';
-            icon = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
     }
     
-    notification.innerHTML = `
-        <div class="${bgColor} text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 animate-pulse">
-            ${icon}
-            <span class="font-medium">${message}</span>
-        </div>
-    `;
+    notification.className = `fixed top-4 right-4 z-[60] ${bgColor} text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3`;
+    messageElement.textContent = message;
     
-    // Show notification with animation
     notification.classList.remove('hidden');
     
-    // Auto hide after 2 seconds
+    // Auto hide after 3 seconds
     setTimeout(() => {
         hideAddMenuNotification();
-    }, 2000);
+    }, 3000);
 }
 
 function hideAddMenuNotification() {
@@ -225,18 +352,7 @@ function hideAddMenuNotification() {
     notification.classList.add('hidden');
 }
 
-function addMenuItem(menuId, menuName, menuPrice, menuImage, quantity = 1) {
-    if (window.parent && window.parent.addMenuItemToForm) {
-        window.parent.addMenuItemToForm(menuId, menuName, menuPrice, menuImage, quantity);
-    } else if (window.opener && window.opener.addMenuItemToForm) {
-        window.opener.addMenuItemToForm(menuId, menuName, menuPrice, menuImage, quantity);
-    } else {
-        if (typeof addMenuItemToForm === 'function') {
-            addMenuItemToForm(menuId, menuName, menuPrice, menuImage, quantity);
-        }
-    }
-}
-
+// Modal control functions
 function closeAddMenuModal() {
     const modal = document.getElementById('addMenuModal');
     if (modal) {
@@ -245,17 +361,7 @@ function closeAddMenuModal() {
     }
 }
 
-// Show loading overlay
-function showLoading() {
-    document.getElementById('loadingOverlay').classList.remove('hidden');
-}
-
-// Hide loading overlay
-function hideLoading() {
-    document.getElementById('loadingOverlay').classList.add('hidden');
-}
-
-// Update category filter buttons styling
+// Filter functions
 function updateCategoryFilterButtons(selectedCategory = '') {
     const filterButtons = document.querySelectorAll('.category-filter-btn');
     filterButtons.forEach(btn => {
@@ -270,12 +376,11 @@ function updateCategoryFilterButtons(selectedCategory = '') {
     });
 }
 
-// Update category info panel
-function updateCategoryInfo(categoryId, categoryName, itemCount) {
+function updateCategoryInfo(categoryName, itemCount) {
     const categoryInfo = document.getElementById('category-info');
     const currentCategoryText = document.getElementById('current-category-text');
     
-    if (categoryId !== '') {
+    if (categoryName && categoryName !== '') {
         currentCategoryText.textContent = `Showing ${itemCount} items from ${categoryName} category`;
         categoryInfo.classList.remove('hidden');
     } else {
@@ -283,42 +388,47 @@ function updateCategoryInfo(categoryId, categoryName, itemCount) {
     }
 }
 
-// Clear category filter
 function clearCategoryFilter() {
-    loadMenuContent('');
+    // Reload without category filter
+    const url = new URL(window.location);
+    url.searchParams.delete('category');
+    window.history.pushState({}, '', url);
+    loadMenuContent();
 }
 
-// Load menu content via AJAX
-function loadMenuContent(category = '') {
-    showLoading();
-    
-    // Build URL with parameters
-    let url = '{{ request()->url() }}?';
-    const params = new URLSearchParams();
-    
-    if (category) {
-        params.append('category', category);
-    }
-    
-    // Remove pagination parameters
-    params.append('per_page', 'all'); // Get all items
-    
-    url += params.toString();
-    
-    // Fetch the content
-    fetch(url, {
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'Accept': 'text/html'
+// AJAX loading functions
+async function loadMenuContent(category = '') {
+    try {
+        let url = '{{ request()->url() }}';
+        const params = new URLSearchParams();
+        
+        if (category) {
+            params.append('category', category);
         }
-    })
-    .then(response => {
+        
+        // Add existing pagination parameters
+        const currentUrl = new URL(window.location);
+        const page = currentUrl.searchParams.get('page');
+        if (page) {
+            params.append('page', page);
+        }
+        
+        if (params.toString()) {
+            url += '?' + params.toString();
+        }
+        
+        const response = await fetch(url, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'text/html'
+            }
+        });
+        
         if (!response.ok) {
             throw new Error('Network response was not ok');
         }
-        return response.text();
-    })
-    .then(html => {
+        
+        const html = await response.text();
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
         const newContent = doc.querySelector('#menu-content');
@@ -327,35 +437,56 @@ function loadMenuContent(category = '') {
             document.getElementById('menu-content').innerHTML = newContent.innerHTML;
         }
         
-        // Update URL without reload
+        // Update URL without page reload
         window.history.pushState({}, '', url);
         
-        // Update category filter buttons
+        // Update UI states
         updateCategoryFilterButtons(category);
         
-        // Update category info
-        const categoryName = category ? document.querySelector(`[data-category="${category}"]`)?.textContent || 'selected' : '';
         const itemCount = document.querySelectorAll('.menu-item').length;
-        updateCategoryInfo(category, categoryName, itemCount);
+        const categoryName = category || '';
+        updateCategoryInfo(categoryName, itemCount);
         
-        hideLoading();
-    })
-    .catch(error => {
+    } catch (error) {
         console.error('Error loading menu content:', error);
-        document.getElementById('menu-content').innerHTML = `
-            <div class="text-center py-8">
-                <p class="text-red-500">Error loading menu items. Please try again.</p>
-                <button onclick="loadMenuContent('${category}')" 
-                        class="mt-2 px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700">
-                    Retry
-                </button>
-            </div>
-        `;
-        hideLoading();
-    });
+        showAddMenuNotification('Error loading menu items', 'error');
+    }
 }
 
+async function loadMenuPage(url) {
+    try {
+        const response = await fetch(url, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'text/html'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        
+        const html = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const newContent = doc.querySelector('#menu-content');
+        
+        if (newContent) {
+            document.getElementById('menu-content').innerHTML = newContent.innerHTML;
+        }
+        
+        // Update URL
+        window.history.pushState({}, '', url);
+        
+    } catch (error) {
+        console.error('Error loading menu page:', error);
+        showAddMenuNotification('Error loading page', 'error');
+    }
+}
+
+// Event listeners
 document.addEventListener('DOMContentLoaded', function() {
+    // Category filter buttons
     document.addEventListener('click', function(e) {
         if (e.target.closest('.category-filter-btn')) {
             e.preventDefault();
@@ -365,6 +496,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    // Close modal when clicking outside
     document.addEventListener('click', function(e) {
         const modal = document.getElementById('addMenuModal');
         if (e.target === modal) {
@@ -372,88 +504,31 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Close modal with Escape key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             closeAddMenuModal();
         }
     });
     
+    // Initialize category filter state
     const urlParams = new URLSearchParams(window.location.search);
     const currentCategory = urlParams.get('category') || '';
     if (currentCategory) {
         updateCategoryFilterButtons(currentCategory);
         
-        const categoryName = document.querySelector(`[data-category="${currentCategory}"]`)?.textContent || 'selected';
         const itemCount = document.querySelectorAll('.menu-item').length;
-        updateCategoryInfo(currentCategory, categoryName, itemCount);
+        updateCategoryInfo(currentCategory, itemCount);
     }
 });
 
+// Handle browser back/forward buttons
 window.addEventListener('popstate', function() {
     const urlParams = new URLSearchParams(window.location.search);
     const category = urlParams.get('category') || '';
+    const page = urlParams.get('page') || '1';
+    
+    // Reload content based on current URL state
     loadMenuContent(category);
 });
 </script>
-
-<style>
-    /* Custom styles untuk modal */
-    .bg-black.bg-opacity-50 {
-        background-color: rgba(0, 0, 0, 0.5);
-    }
-
-    /* Smooth transitions */
-    #addMenuModal {
-        transition: opacity 0.3s ease-in-out;
-    }
-
-    /* Scrollbar styling */
-    .max-h-96::-webkit-scrollbar {
-        width: 6px;
-    }
-
-    .max-h-96::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 3px;
-    }
-
-    .max-h-96::-webkit-scrollbar-thumb {
-        background: #c1c1c1;
-        border-radius: 3px;
-    }
-
-    .max-h-96::-webkit-scrollbar-thumb:hover {
-        background: #a8a8a8;
-    }
-
-    /* Category filter button transitions */
-    .category-filter-btn {
-        transition: all 0.2s ease-in-out;
-        cursor: pointer;
-    }
-
-    .category-filter-btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    /* Menu item animations */
-    .menu-item {
-        transition: all 0.3s ease;
-    }
-
-    .menu-item:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
-
-    /* Loading animation */
-    @keyframes spin {
-        to {
-            transform: rotate(360deg);
-        }
-    }
-    .animate-spin {
-        animation: spin 1s linear infinite;
-    }
-</style>

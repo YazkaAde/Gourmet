@@ -10,7 +10,7 @@
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 bg-white border-b border-gray-200">
                     <!-- Filter Status -->
-                    <div class="mb-6 flex gap-2">
+                    <div class="mb-6 flex gap-2 flex-wrap">
                         <a href="{{ route('cashier.orders.index') }}" 
                            class="px-4 py-2 rounded {{ !request('status') ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-700' }}">
                             All Orders
@@ -41,6 +41,9 @@
                                         Customer
                                     </th>
                                     <th class="px-6 py-3 border-b-2 border-gray-300 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        Type
+                                    </th>
+                                    <th class="px-6 py-3 border-b-2 border-gray-300 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                         Table
                                     </th>
                                     <th class="px-6 py-3 border-b-2 border-gray-300 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -67,7 +70,19 @@
                                             {{ $order->user->name }}
                                         </td>
                                         <td class="px-6 py-4 border-b border-gray-300">
-                                            {{ $order->table_number }}
+                                            <span class="px-2 py-1 rounded-full text-xs font-medium 
+                                                @if($order->order_type == 'dine_in') bg-blue-100 text-blue-800
+                                                @else bg-orange-100 text-orange-800
+                                                @endif">
+                                                {{ str_replace('_', ' ', ucfirst($order->order_type)) }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 border-b border-gray-300">
+                                            @if($order->order_type == 'dine_in')
+                                                {{ $order->table_number ?? 'N/A' }}
+                                            @else
+                                                <span class="text-gray-500">-</span>
+                                            @endif
                                         </td>
                                         <td class="px-6 py-4 border-b border-gray-300">
                                             Rp {{ number_format($order->total_price, 0) }}
@@ -88,7 +103,6 @@
                                         <td class="px-6 py-4 border-b border-gray-300">
                                             <div class="flex gap-2">
                                                 @if($order->status == 'cancelled')
-                                                    <!-- Tombol Uncancel untuk status cancelled -->
                                                     <form action="{{ route('cashier.orders.update-status', $order) }}" method="POST">
                                                         @csrf
                                                         @method('PATCH')
@@ -98,7 +112,6 @@
                                                         </button>
                                                     </form>
                                                 @elseif($order->status != 'completed')
-                                                    <!-- Tombol Update Status untuk pending dan processing -->
                                                     <form action="{{ route('cashier.orders.update-status', $order) }}" method="POST">
                                                         @csrf
                                                         @method('PATCH')
@@ -110,7 +123,6 @@
                                                         </button>
                                                     </form>
                                                     
-                                                    <!-- Tombol Cancel untuk pending dan processing -->
                                                     <form action="{{ route('cashier.orders.update-status', $order) }}" method="POST">
                                                         @csrf
                                                         @method('PATCH')
@@ -120,11 +132,9 @@
                                                         </button>
                                                     </form>
                                                 @else
-                                                    <!-- Tidak ada tombol untuk status completed -->
                                                     <span class="text-gray-500 text-sm">No actions</span>
                                                 @endif
                                                 
-                                                <!-- Tombol View selalu tersedia -->
                                                 <a href="{{ route('cashier.orders.show', $order) }}" 
                                                    class="text-primary-600 hover:text-primary-800 text-sm">
                                                     View
@@ -134,7 +144,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">
+                                        <td colspan="8" class="px-6 py-4 text-center text-gray-500">
                                             No orders found.
                                         </td>
                                     </tr>

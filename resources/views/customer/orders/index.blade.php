@@ -24,8 +24,21 @@
                                     <div class="flex justify-between items-start mb-4">
                                         <div>
                                             <h3 class="font-bold text-lg text-gray-900">Order #{{ $order->id }}</h3>
-                                            <p class="text-gray-600">Table: {{ $order->table_number }}</p>
+                                            <p class="text-gray-600">
+                                                Type: 
+                                                <span class="font-medium capitalize">
+                                                    {{ str_replace('_', ' ', $order->order_type) }}
+                                                </span>
+                                            </p>
+                                            @if($order->isDineIn())
+                                                <p class="text-gray-600">Table: {{ $order->table_number }}</p>
+                                            @endif
                                             <p class="text-gray-600">Date: {{ $order->created_at->format('M d, Y H:i') }}</p>
+                                            @if($order->notes)
+                                                <p class="text-gray-600 mt-1">
+                                                    <span class="font-medium">Notes:</span> {{ $order->notes }}
+                                                </p>
+                                            @endif
                                         </div>
                                         <div class="text-right">
                                             <span class="px-3 py-1 rounded-full text-sm font-medium 
@@ -100,7 +113,6 @@
                                         @if($order->status == 'pending')
                                             <form action="{{ route('customer.orders.cancel', $order) }}" method="POST">
                                                 @csrf
-                                                @method('DELETE')
                                                 <button type="submit" 
                                                         class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
                                                         onclick="return confirm('Are you sure you want to cancel this order?')">
@@ -127,6 +139,13 @@
                                                     Pay Now
                                                 </a>
                                             @endif
+                                        @endif
+                                        
+                                        @if($order->status == 'pending' || $order->status == 'processing')
+                                            <a href="{{ route('customer.orders.edit', $order) }}" 
+                                            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+                                                Edit Order
+                                            </a>
                                         @endif
                                         
                                         <a href="{{ route('customer.orders.show', $order) }}" 

@@ -170,9 +170,9 @@
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mt-6">
                 <div class="p-6 bg-white border-b border-gray-200">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-semibold">Pre-Order Menu Items</h3>
+                        <h3 class="text-lg font-semibold">Pre-Order Menu Items ({{ $reservation->orderItems->count() }} items)</h3>
                         
-                        @if($reservation->isMenuEditable())
+                        @if($reservation->canReduceMenu())
                         <form action="{{ route('customer.reservations.menu.clear', $reservation) }}" method="POST" class="inline">
                             @csrf
                             @method('DELETE')
@@ -185,12 +185,21 @@
                         @endif
                     </div>
                     
+                    {{-- Debug Info --}}
+                    <div class="mb-4 p-3 bg-blue-50 rounded-lg">
+                        <p class="text-sm text-blue-700">
+                            Total Menu Items: <strong>{{ $reservation->orderItems->count() }}</strong> | 
+                            Menu Total: <strong>Rp {{ number_format($reservation->menu_total, 0) }}</strong>
+                        </p>
+                    </div>
+                    
                     <div class="space-y-4">
-                        @foreach($reservation->orderItems->groupBy('menu_id') as $menuItems)
+                        @foreach($reservation->orderItems->groupBy('menu_id') as $menuId => $menuItems)
                         @php 
                             $item = $menuItems->first(); 
                             $totalQuantity = $menuItems->sum('quantity');
                             $totalPrice = $menuItems->sum('total_price');
+                            $canReduce = $reservation->canReduceMenu();
                         @endphp
                         <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-4 gap-4">
                             <div class="flex items-center flex-1">
@@ -203,17 +212,29 @@
                                 <div class="flex-1">
                                     <h4 class="font-semibold">{{ $item->menu->name }}</h4>
                                     <p class="text-sm text-gray-600">Rp {{ number_format($item->price, 0) }} per item</p>
+                                    <p class="text-xs text-gray-500">Item ID: {{ $item->id }}, Menu ID: {{ $item->menu_id }}</p>
                                 </div>
                             </div>
                             
                             <div class="flex items-center gap-4 flex-wrap">
-                                @if($reservation->isMenuEditable())
+                                @if($reservation->canAddMenu())
                                 <div class="flex items-center border rounded-lg overflow-hidden">
+                                    @if($canReduce)
                                     <button type="button" 
                                             class="px-3 py-2 bg-gray-200 hover:bg-gray-300 decrease-quantity transition-colors"
-                                            data-item-id="{{ $item->id }}">
+                                            data-item-id="{{ $item->id }}"
+                                            data-can-reduce="true">
                                         -
                                     </button>
+                                    @else
+                                    <button type="button" 
+                                            class="px-3 py-2 bg-gray-100 text-gray-400 cursor-not-allowed"
+                                            disabled
+                                            title="Cannot reduce items when order is processing">
+                                        -
+                                    </button>
+                                    @endif
+                                    
                                     <input type="number" 
                                         name="quantity" 
                                         value="{{ $totalQuantity }}" 
@@ -221,7 +242,10 @@
                                         class="w-16 px-2 py-2 text-center border-0 quantity-input"
                                         data-item-id="{{ $item->id }}"
                                         data-price="{{ $item->price }}"
-                                        data-original-value="{{ $totalQuantity }}">
+                                        data-original-value="{{ $totalQuantity }}"
+                                        {{ !$canReduce ? 'readonly' : '' }}
+                                        {{ !$canReduce ? 'style="background-color: #f9fafb;"' : '' }}>
+                                    
                                     <button type="button" 
                                             class="px-3 py-2 bg-gray-200 hover:bg-gray-300 increase-quantity transition-colors"
                                             data-item-id="{{ $item->id }}">
@@ -229,6 +253,7 @@
                                     </button>
                                 </div>
                                 
+                                @if($canReduce)
                                 <form action="{{ route('customer.reservations.menu.remove', [$reservation, $item]) }}" method="POST" class="inline">
                                     @csrf
                                     @method('DELETE')
@@ -238,6 +263,7 @@
                                         Remove
                                     </button>
                                 </form>
+                                @endif
                                 @else
                                 <div class="text-center">
                                     <p class="text-sm text-gray-600">Qty: {{ $totalQuantity }}</p>
@@ -253,7 +279,19 @@
                                     </p>
                                 </div>
                                 @endif
-                                
+                                @if($reservation->hasProcessingOrder())
+                                <div class="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                                    <div class="flex items-center">
+                                        <svg class="w-5 h-5 text-orange-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                                        </svg>
+                                        <div>
+                                            <p class="text-orange-700 font-medium">Order is being processed</p>
+                                            <p class="text-orange-600 text-sm">Changes require two-step confirmation and may affect preparation time</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                @endif
                                 <p class="font-medium w-24 text-right item-total" data-item-id="{{ $item->id }}">
                                     Rp {{ number_format($totalPrice, 0) }}
                                 </p>
@@ -261,8 +299,16 @@
                         </div>
                         @endforeach
                     </div>
+                    
+                    {{-- Total Summary --}}
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <div class="flex justify-between items-center">
+                            <span class="text-lg font-semibold">Total Menu:</span>
+                            <span class="text-lg font-bold" id="menu-total">Rp {{ number_format($reservation->menu_total, 0) }}</span>
+                        </div>
+                    </div>
 
-                    @if($reservation->isMenuEditable())
+                    @if($reservation->canAddMenu())
                     <div class="mt-6 pt-6 border-t border-gray-200 hidden" id="changes-section">
                         <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                             <span class="text-sm text-gray-600 text-center md:text-left" id="changes-message">Changes pending confirmation</span>
@@ -281,6 +327,14 @@
                         </div>
                     </div>
                     @endif
+                </div>
+            </div>
+            @else
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mt-6">
+                <div class="p-6 bg-white border-b border-gray-200">
+                    <div class="text-center py-8">
+                        <p class="text-gray-500">No menu items added to this reservation.</p>
+                    </div>
                 </div>
             </div>
             @endif
@@ -535,7 +589,7 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Quantity management
+        // Quantity management dengan konfirmasi dua langkah
         const decreaseButtons = document.querySelectorAll('.decrease-quantity');
         const increaseButtons = document.querySelectorAll('.increase-quantity');
         const quantityInputs = document.querySelectorAll('.quantity-input');
@@ -546,6 +600,7 @@
 
         let pendingChanges = new Map();
         let originalValues = new Map();
+        let isProcessingOrder = {{ $reservation->hasProcessingOrder() ? 'true' : 'false' }};
 
         // Store original values
         quantityInputs.forEach(input => {
@@ -555,19 +610,40 @@
             input.setAttribute('data-original-value', originalValue);
         });
 
-        // Decrease quantity
+        // Decrease quantity dengan konfirmasi
         decreaseButtons.forEach(button => {
             button.addEventListener('click', function() {
+                const canReduce = this.getAttribute('data-can-reduce') === 'true';
+                if (!canReduce) {
+                    showNotification('Cannot reduce items when order is processing. You can only add items.', 'info');
+                    return;
+                }
+
                 const itemId = this.getAttribute('data-item-id');
                 const input = document.querySelector(`.quantity-input[data-item-id="${itemId}"]`);
                 let currentValue = parseInt(input.value);
                 
                 if (currentValue > 1) {
-                    currentValue--;
-                    input.value = currentValue;
-                    updatePendingChange(itemId, currentValue);
-                    updateItemTotal(itemId, currentValue);
-                    showChangesSection();
+                    // Konfirmasi dua langkah untuk pengurangan
+                    if (isProcessingOrder && currentValue > 1) {
+                        showTwoStepConfirmation(
+                            'Decrease Quantity',
+                            `Are you sure you want to decrease quantity from ${currentValue} to ${currentValue - 1}?`,
+                            () => {
+                                currentValue--;
+                                input.value = currentValue;
+                                updatePendingChange(itemId, currentValue);
+                                updateItemTotal(itemId, currentValue);
+                                showChangesSection();
+                            }
+                        );
+                    } else {
+                        currentValue--;
+                        input.value = currentValue;
+                        updatePendingChange(itemId, currentValue);
+                        updateItemTotal(itemId, currentValue);
+                        showChangesSection();
+                    }
                 }
             });
         });
@@ -579,18 +655,34 @@
                 const input = document.querySelector(`.quantity-input[data-item-id="${itemId}"]`);
                 let currentValue = parseInt(input.value);
                 
-                currentValue++;
-                input.value = currentValue;
-                updatePendingChange(itemId, currentValue);
-                updateItemTotal(itemId, currentValue);
-                showChangesSection();
+                // Konfirmasi dua langkah untuk penambahan pada order processing
+                if (isProcessingOrder) {
+                    showTwoStepConfirmation(
+                        'Increase Quantity',
+                        `Are you sure you want to increase quantity from ${currentValue} to ${currentValue + 1}?`,
+                        () => {
+                            currentValue++;
+                            input.value = currentValue;
+                            updatePendingChange(itemId, currentValue);
+                            updateItemTotal(itemId, currentValue);
+                            showChangesSection();
+                        }
+                    );
+                } else {
+                    currentValue++;
+                    input.value = currentValue;
+                    updatePendingChange(itemId, currentValue);
+                    updateItemTotal(itemId, currentValue);
+                    showChangesSection();
+                }
             });
         });
 
-        // Input change
+        // Input change dengan konfirmasi
         quantityInputs.forEach(input => {
             input.addEventListener('change', function() {
                 const itemId = this.getAttribute('data-item-id');
+                const canReduce = !this.readOnly;
                 let value = parseInt(this.value);
                 
                 if (value < 1 || isNaN(value)) {
@@ -598,9 +690,42 @@
                     this.value = 1;
                 }
                 
-                updatePendingChange(itemId, value);
-                updateItemTotal(itemId, value);
-                showChangesSection();
+                const originalValue = originalValues.get(itemId);
+                
+                // Konfirmasi dua langkah untuk perubahan pada order processing
+                if (isProcessingOrder && value !== originalValue) {
+                    const action = value > originalValue ? 'increase' : 'decrease';
+                    showTwoStepConfirmation(
+                        `${action === 'increase' ? 'Increase' : 'Decrease'} Quantity`,
+                        `Are you sure you want to ${action} quantity from ${originalValue} to ${value}?`,
+                        () => {
+                            if (value < originalValue && !canReduce) {
+                                showNotification('Cannot reduce items when order is processing. You can only add items.', 'info');
+                                this.value = originalValue;
+                                return;
+                            }
+                            
+                            updatePendingChange(itemId, value);
+                            updateItemTotal(itemId, value);
+                            showChangesSection();
+                        },
+                        () => {
+                            // Cancel callback - reset ke nilai original
+                            this.value = originalValue;
+                            updateItemTotal(itemId, originalValue);
+                        }
+                    );
+                } else {
+                    if (value < originalValue && !canReduce) {
+                        showNotification('Cannot reduce items when order is processing. You can only add items.', 'info');
+                        this.value = originalValue;
+                        return;
+                    }
+                    
+                    updatePendingChange(itemId, value);
+                    updateItemTotal(itemId, value);
+                    showChangesSection();
+                }
             });
 
             input.addEventListener('input', function() {
@@ -612,6 +737,78 @@
                 }
             });
         });
+
+        // Fungsi konfirmasi dua langkah dengan dialog
+        function showTwoStepConfirmation(title, message, confirmCallback, cancelCallback = null) {
+            // Step 1: Basic confirmation
+            const firstConfirmation = confirm(`${title}\n\n${message}\n\nClick OK to continue.`);
+            
+            if (!firstConfirmation) {
+                if (cancelCallback) cancelCallback();
+                return;
+            }
+
+            // Step 2: Detailed confirmation dengan custom dialog
+            showCustomConfirmationDialog(title, message, confirmCallback, cancelCallback);
+        }
+
+        // Custom confirmation dialog
+        function showCustomConfirmationDialog(title, message, confirmCallback, cancelCallback = null) {
+            const dialog = document.createElement('div');
+            dialog.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            dialog.innerHTML = `
+                <div class="bg-white rounded-lg w-96 max-w-md mx-4 p-6">
+                    <h3 class="text-lg font-semibold mb-2 text-gray-900">${title}</h3>
+                    <p class="text-gray-600 mb-6">${message}</p>
+                    
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-yellow-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="text-sm font-medium text-yellow-800">Order is being processed</span>
+                        </div>
+                        <p class="text-xs text-yellow-700 mt-1">Changes may affect kitchen preparation</p>
+                    </div>
+                    
+                    <div class="flex justify-end gap-3">
+                        <button type="button" 
+                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors font-medium cancel-confirm-btn">
+                            Cancel
+                        </button>
+                        <button type="button" 
+                                class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium confirm-btn">
+                            Confirm Change
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(dialog);
+
+            // Handle confirm button
+            dialog.querySelector('.confirm-btn').addEventListener('click', function() {
+                document.body.removeChild(dialog);
+                confirmCallback();
+                showNotification('Change confirmed and will be saved', 'success');
+            });
+
+            // Handle cancel button
+            dialog.querySelector('.cancel-confirm-btn').addEventListener('click', function() {
+                document.body.removeChild(dialog);
+                if (cancelCallback) cancelCallback();
+                showNotification('Change cancelled', 'info');
+            });
+
+            // Handle click outside
+            dialog.addEventListener('click', function(e) {
+                if (e.target === dialog) {
+                    document.body.removeChild(dialog);
+                    if (cancelCallback) cancelCallback();
+                    showNotification('Change cancelled', 'info');
+                }
+            });
+        }
 
         // Show changes section
         function showChangesSection() {
@@ -688,7 +885,7 @@
             });
         }
             
-        // Confirm changes
+        // Confirm changes dengan konfirmasi dua langkah
         if (confirmChangesBtn) {
             confirmChangesBtn.addEventListener('click', async function() {
                 if (pendingChanges.size === 0) {
@@ -696,89 +893,185 @@
                     return;
                 }
 
-                const originalText = confirmChangesBtn.textContent;
-                confirmChangesBtn.textContent = 'Saving...';
-                confirmChangesBtn.disabled = true;
+                // Step 1: Basic confirmation
+                const changeSummary = Array.from(pendingChanges.entries())
+                    .map(([itemId, quantity]) => {
+                        const input = document.querySelector(`.quantity-input[data-item-id="${itemId}"]`);
+                        const menuName = input ? input.closest('.flex-col').querySelector('h4').textContent : 'Item';
+                        const originalValue = originalValues.get(itemId);
+                        return `• ${menuName}: ${originalValue} → ${quantity}`;
+                    })
+                    .join('\n');
 
-                try {
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = "{{ route('customer.reservations.menu.update-items', $reservation) }}";
-                    
-                    const csrfToken = document.createElement('input');
-                    csrfToken.type = 'hidden';
-                    csrfToken.name = '_token';
-                    csrfToken.value = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-                    
-                    const methodField = document.createElement('input');
-                    methodField.type = 'hidden';
-                    methodField.name = '_method';
-                    methodField.value = 'PUT';
-                    
-                    let updateIndex = 0;
-                    for (const [itemId, quantity] of pendingChanges.entries()) {
-                        const itemIdField = document.createElement('input');
-                        itemIdField.type = 'hidden';
-                        itemIdField.name = `updates[${updateIndex}][itemId]`;
-                        itemIdField.value = itemId;
-                        
-                        const quantityField = document.createElement('input');
-                        quantityField.type = 'hidden';
-                        quantityField.name = `updates[${updateIndex}][quantity]`;
-                        quantityField.value = quantity;
-                        
-                        form.appendChild(itemIdField);
-                        form.appendChild(quantityField);
-                        updateIndex++;
-                    }
-                    
-                    document.body.appendChild(form);
-                    
-                    const formData = new FormData(form);
-                    
-                    const response = await fetch(form.action, {
-                        method: 'POST',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRF-TOKEN': csrfToken.value
-                        },
-                        body: formData
-                    });
-                    
-                    const result = await response.json();
-                    
-                    document.body.removeChild(form);
-                    
-                    if (result.success) {
-                        pendingChanges.clear();
-                        hideChangesSection();
-                        
-                        quantityInputs.forEach(input => {
-                            const itemId = input.getAttribute('data-item-id');
-                            if (pendingChanges.has(itemId)) {
-                                const newValue = pendingChanges.get(itemId);
-                                input.setAttribute('data-original-value', newValue);
-                                originalValues.set(itemId, parseInt(newValue));
-                            }
-                        });
-                        
-                        showNotification('✓ Changes saved successfully!', 'success');
-                                        
-                    } else {
-                        throw new Error(result.message || 'Failed to save changes');
-                    }
+                const firstConfirmation = confirm(
+                    `Please confirm your changes:\n\n${changeSummary}\n\nClick OK to continue.`
+                );
 
-                } catch (error) {
-                    console.error('Error:', error);
-                    showNotification('✗ Error saving changes: ' + error.message, 'error');
-                } finally {
-                    confirmChangesBtn.textContent = originalText;
-                    confirmChangesBtn.disabled = false;
+                if (!firstConfirmation) {
+                    return;
+                }
+
+                // Step 2: Detailed confirmation
+                showFinalConfirmationDialog(changeSummary);
+            });
+        }
+
+        // Final confirmation dialog
+        function showFinalConfirmationDialog(changeSummary) {
+            const dialog = document.createElement('div');
+            dialog.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            dialog.innerHTML = `
+                <div class="bg-white rounded-lg w-96 max-w-md mx-4 p-6">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-900">Final Confirmation</h3>
+                    
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                        <div class="flex items-center mb-2">
+                            <svg class="w-5 h-5 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="font-medium text-blue-800">Changes Summary</span>
+                        </div>
+                        <div class="text-sm text-blue-700 whitespace-pre-line">${changeSummary}</div>
+                    </div>
+
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-yellow-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="text-sm font-medium text-yellow-800">Important Notice</span>
+                        </div>
+                        <p class="text-xs text-yellow-700 mt-1">
+                            ${isProcessingOrder ? 
+                                'Your order is currently being prepared. Changes may affect preparation time.' : 
+                                'Please review your changes carefully before confirming.'}
+                        </p>
+                    </div>
+                    
+                    <div class="flex justify-end gap-3">
+                        <button type="button" 
+                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors font-medium cancel-final-btn">
+                            Cancel
+                        </button>
+                        <button type="button" 
+                                class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors font-medium confirm-final-btn">
+                            Save All Changes
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(dialog);
+
+            // Handle final confirm button
+            dialog.querySelector('.confirm-final-btn').addEventListener('click', function() {
+                document.body.removeChild(dialog);
+                processChanges();
+            });
+
+            // Handle final cancel button
+            dialog.querySelector('.cancel-final-btn').addEventListener('click', function() {
+                document.body.removeChild(dialog);
+                showNotification('Changes cancelled', 'info');
+            });
+
+            // Handle click outside
+            dialog.addEventListener('click', function(e) {
+                if (e.target === dialog) {
+                    document.body.removeChild(dialog);
+                    showNotification('Changes cancelled', 'info');
                 }
             });
         }
 
-        // Inisialisasi session notifications
+        // Process changes setelah konfirmasi final
+        async function processChanges() {
+            const originalText = confirmChangesBtn.textContent;
+            confirmChangesBtn.textContent = 'Saving...';
+            confirmChangesBtn.disabled = true;
+
+            try {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = "{{ route('customer.reservations.menu.update-items', $reservation) }}";
+                
+                const csrfToken = document.createElement('input');
+                csrfToken.type = 'hidden';
+                csrfToken.name = '_token';
+                csrfToken.value = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                
+                const methodField = document.createElement('input');
+                methodField.type = 'hidden';
+                methodField.name = '_method';
+                methodField.value = 'PUT';
+                
+                let updateIndex = 0;
+                for (const [itemId, quantity] of pendingChanges.entries()) {
+                    const itemIdField = document.createElement('input');
+                    itemIdField.type = 'hidden';
+                    itemIdField.name = `updates[${updateIndex}][itemId]`;
+                    itemIdField.value = itemId;
+                    
+                    const quantityField = document.createElement('input');
+                    quantityField.type = 'hidden';
+                    quantityField.name = `updates[${updateIndex}][quantity]`;
+                    quantityField.value = quantity;
+                    
+                    form.appendChild(itemIdField);
+                    form.appendChild(quantityField);
+                    updateIndex++;
+                }
+                
+                document.body.appendChild(form);
+                
+                const formData = new FormData(form);
+                
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': csrfToken.value
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                document.body.removeChild(form);
+                
+                if (result.success) {
+                    pendingChanges.clear();
+                    hideChangesSection();
+                    
+                    // Update original values
+                    quantityInputs.forEach(input => {
+                        const itemId = input.getAttribute('data-item-id');
+                        const currentValue = parseInt(input.value);
+                        input.setAttribute('data-original-value', currentValue);
+                        originalValues.set(itemId, currentValue);
+                    });
+                    
+                    showNotification('✓ All changes saved successfully!', 'success');
+                    
+                    // Reload page after 1.5 seconds to reflect changes
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                                
+                } else {
+                    throw new Error(result.message || 'Failed to save changes');
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification('✗ Error saving changes: ' + error.message, 'error');
+            } finally {
+                confirmChangesBtn.textContent = originalText;
+                confirmChangesBtn.disabled = false;
+            }
+        }
+
+        // Initialize session notifications
         function initializeSessionNotifications() {
             const sessionNotifications = document.querySelectorAll('.session-notification');
             
@@ -908,5 +1201,5 @@
             document.body.style.overflow = 'auto';
         }
     }
-    </script>
+</script>
 </x-app-layout>

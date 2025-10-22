@@ -56,7 +56,14 @@
                     <span class="font-medium">Date:</span> {{ $payment->updated_at->format('M d, Y') }}
                 </div>
                 <div>
-                    <span class="font-medium">Order #:</span> {{ $payment->order_id }}
+                    <span class="font-medium">
+                        @if($payment->order_id)
+                            Order #
+                        @elseif($payment->reservation_id)
+                            Reservation #
+                        @endif
+                    </span>
+                    {{ $payment->order_id ?? $payment->reservation_id }}
                 </div>
                 <div class="text-right">
                     <span class="font-medium">Time:</span> {{ $payment->updated_at->format('H:i') }}
@@ -64,6 +71,14 @@
                 <div>
                     <span class="font-medium">Cashier:</span> {{ Auth::user()->name }}
                 </div>
+                @if($payment->order_id && $payment->order)
+                <div>
+                    <span class="font-medium">Order Type:</span> 
+                    <span class="font-medium {{ $payment->order->order_type == 'dine_in' ? 'text-blue-600' : 'text-orange-600' }}">
+                        {{ str_replace('_', ' ', ucfirst($payment->order->order_type)) }}
+                    </span>
+                </div>
+                @endif
             </div>
         </div>
 
@@ -73,7 +88,11 @@
             <div class="text-sm">
                 @if($payment->order_id && $payment->order && $payment->order->user)
                     <p><span class="font-medium">Name:</span> {{ $payment->order->user->name }}</p>
-                    <p><span class="font-medium">Table:</span> {{ $payment->order->table_number ?? 'N/A' }}</p>
+                    @if($payment->order->order_type == 'dine_in')
+                        <p><span class="font-medium">Table:</span> {{ $payment->order->table_number ?? 'N/A' }}</p>
+                    @else
+                        <p><span class="font-medium">Type:</span> Take Away</p>
+                    @endif
                 @elseif($payment->reservation_id && $payment->reservation && $payment->reservation->user)
                     <p><span class="font-medium">Name:</span> {{ $payment->reservation->user->name }}</p>
                     <p><span class="font-medium">Table:</span> {{ $payment->reservation->table_number ?? 'N/A' }}</p>
@@ -84,8 +103,8 @@
             </div>
         </div>
 
-        {{-- Order Items --}}
-        @if($payment->order_id && $payment->order && $payment->order->orderItems)
+        {{-- Order Items (for regular orders) --}}
+        @if($payment->order_id && $payment->order && $payment->order->orderItems->count() > 0)
         <div class="border-b border-gray-300 pb-4 mb-4">
             <h3 class="font-semibold mb-3">ORDER ITEMS</h3>
             <div class="space-y-2 text-sm">
@@ -96,6 +115,25 @@
                         <span class="font-medium">{{ $orderItem->quantity }}x</span> {{ $orderItem->menu->name }}
                     </div>
                     <div>Rp {{ number_format($orderItem->price * $orderItem->quantity, 0) }}</div>
+                </div>
+                @endif
+                @endforeach
+            </div>
+        </div>
+        @endif
+
+        {{-- Pre-Order Items (for reservations) --}}
+        @if($payment->reservation_id && $payment->reservation && $payment->reservation->preOrderItems->count() > 0)
+        <div class="border-b border-gray-300 pb-4 mb-4">
+            <h3 class="font-semibold mb-3">PRE-ORDER ITEMS</h3>
+            <div class="space-y-2 text-sm">
+                @foreach($payment->reservation->preOrderItems as $preOrderItem)
+                @if($preOrderItem->menu)
+                <div class="flex justify-between">
+                    <div>
+                        <span class="font-medium">{{ $preOrderItem->quantity }}x</span> {{ $preOrderItem->menu->name }}
+                    </div>
+                    <div>Rp {{ number_format($preOrderItem->price * $preOrderItem->quantity, 0) }}</div>
                 </div>
                 @endif
                 @endforeach
@@ -152,7 +190,6 @@
     </div>
 
     <script>
-        // Auto print when page loads
         window.onload = function() {
             window.print();
         };

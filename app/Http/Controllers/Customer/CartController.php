@@ -6,10 +6,13 @@ use App\Models\Cart;
 use App\Models\Menu;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\NumberTable;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 
 class CartController extends Controller
 {
@@ -154,11 +157,30 @@ class CartController extends Controller
 
     public function checkout(Request $request)
     {
-        $request->validate([
-            'table_number' => 'required|exists:number_tables,table_number',
+        $validator = Validator::make($request->all(), [
+            'order_type' => 'required|in:dine_in,take_away',
+            'table_number' => 'required_if:order_type,dine_in',
+            'notes' => 'nullable|string|max:500',
             'selected_cart_ids' => 'sometimes|array',
             'selected_cart_ids.*' => 'exists:carts,id'
         ]);
+
+        if ($request->order_type === 'dine_in' && $request->table_number) {
+            $validator->after(function ($validator) use ($request) {
+                $tableExists = NumberTable::where('table_number', $request->table_number)->exists();
+                if (!$tableExists) {
+                    $validator->errors()->add('table_number', 'The selected table does not exist.');
+                }
+            });
+        }
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
 
         $user = Auth::user();
         
@@ -180,33 +202,53 @@ class CartController extends Controller
                 ], 400);
             }
             
-            $tableInUse = Order::where('table_number', $request->table_number)
-                ->whereIn('status', ['pending', 'processing'])
-                ->exists();
-                
-            if ($tableInUse) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Table is currently occupied'
-                ], 400);
+            if ($request->order_type === 'dine_in') {
+                $tableInUse = Order::where('table_number', $request->table_number)
+                    ->whereIn('status', ['pending', 'processing'])
+                    ->exists();
+                    
+                if ($tableInUse) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Table is currently occupied'
+                    ], 400);
+                }
             }
             
             $totalPrice = $cartItems->sum(function ($cart) {
                 return $cart->menu->price * $cart->quantity;
             });
             
-            $order = Order::create([
+            $orderData = [
                 'user_id' => $user->id,
-                'table_number' => $request->table_number,
+                'table_number' => $request->order_type === 'dine_in' ? $request->table_number : null,
                 'total_price' => $totalPrice,
                 'status' => 'pending',
-            ]);
+                'order_type' => $request->order_type,
+                'notes' => $request->notes
+            ];
+            
+            $order = Order::create($orderData);
             
             foreach ($cartItems as $cartItem) {
+                $menuSnapshot = [
+                    'name' => $cartItem->menu->name,
+                    'price' => $cartItem->menu->price,
+                    'image_url' => $cartItem->menu->image_url,
+                    'description' => $cartItem->menu->description,
+                    'category_id' => $cartItem->menu->category_id,
+                    'category_name' => $cartItem->menu->category->name ?? null,
+                    'snapshot_at' => now()->toISOString()
+                ];
+                
                 OrderItem::create([
                     'order_id' => $order->id,
                     'menu_id' => $cartItem->menu_id,
                     'reservation_id' => null,
+                    'menu_name' => $cartItem->menu->name,
+                    'menu_price' => $cartItem->menu->price,
+                    'menu_image_url' => $cartItem->menu->image_url,
+                    'menu_snapshot' => $menuSnapshot,
                     'quantity' => $cartItem->quantity,
                     'price' => $cartItem->menu->price,
                     'total_price' => $cartItem->menu->price * $cartItem->quantity

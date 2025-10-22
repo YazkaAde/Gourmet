@@ -29,6 +29,12 @@
                             <p class="font-medium">#{{ $order->id }}</p>
                         </div>
                         <div>
+                            <p class="text-sm text-gray-600">Order Type</p>
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 capitalize">
+                                {{ str_replace('_', ' ', $order->order_type) }}
+                            </span>
+                        </div>
+                        <div>
                             <p class="text-sm text-gray-600">Status</p>
                             <span class="px-2 py-1 text-xs font-semibold rounded-full 
                                 @if($order->status == 'completed') bg-green-100 text-green-800
@@ -38,10 +44,12 @@
                                 {{ ucfirst($order->status) }}
                             </span>
                         </div>
+                        @if($order->isDineIn())
                         <div>
                             <p class="text-sm text-gray-600">Table Number</p>
                             <p class="font-medium">{{ $order->table_number }}</p>
                         </div>
+                        @endif
                         <div>
                             <p class="text-sm text-gray-600">Total Price</p>
                             <p class="font-medium">Rp {{ number_format($order->total_price, 0) }}</p>
@@ -50,8 +58,14 @@
                             <p class="text-sm text-gray-600">Order Date</p>
                             <p class="font-medium">{{ $order->created_at->format('d M Y, H:i') }}</p>
                         </div>
+                        @if($order->notes)
+                        <div class="md:col-span-2">
+                            <p class="text-sm text-gray-600">Special Notes</p>
+                            <p class="font-medium">{{ $order->notes }}</p>
+                        </div>
+                        @endif
                     </div>
-
+                    
                     @if($order->payment)
                     <div class="mt-6 pt-6 border-t border-gray-200">
                         <h4 class="text-md font-semibold mb-3">Payment Information</h4>
@@ -88,6 +102,25 @@
                         @endif
                         </div>
                     </div>
+                    @endif
+
+                    @if($order->status == 'processing')
+                    <div class="mt-8 pt-8 border-t border-gray-200">
+                        <div class="mb-6 p-4 border border-blue-200 rounded-lg bg-blue-50">
+                            <h3 class="font-semibold text-blue-800 mb-3">Add More Items</h3>
+                            <p class="text-sm text-blue-600 mb-4">
+                                You can add more items to your order. Newly added items can be removed.
+                            </p>
+                            
+                            <button type="button" 
+                                    onclick="openAddItemsModal()"
+                                    class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors">
+                                + Open Menu to Add Items
+                            </button>
+                        </div>
+                    </div>
+                    
+                    @include('customer.orders.partials.add-items-modal', ['order' => $order, 'categories' => $categories, 'menus' => $menus])
                     @endif
                 </div>
             </div>
@@ -203,9 +236,21 @@
                     </div>
                 @endif
 
-                    <div class="mt-6 pt-6 border-t border-gray-200">
+                    <div class="mt-6 pt-6 border-t border-gray-200 flex justify-between items-center">
+                        <div>
+                            @if($order->status == 'pending' || $order->status == 'processing')
+                                <a href="{{ route('customer.orders.edit', $order) }}" 
+                                class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors font-medium">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                    </svg>
+                                    Edit Order
+                                </a>
+                            @endif
+                        </div>
+                        
                         <a href="{{ route('customer.orders.index') }}" 
-                           class="inline-flex items-center px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors font-medium">
+                        class="inline-flex items-center px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors font-medium">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                             </svg>

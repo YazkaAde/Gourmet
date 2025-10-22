@@ -14,7 +14,18 @@
                         <div>
                             <h1 class="text-2xl font-bold text-gray-900">Order #{{ $order->id }}</h1>
                             <p class="text-gray-600">Customer: {{ $order->user->name }}</p>
-                            <p class="text-gray-600">Table: {{ $order->table_number }}</p>
+                            <p class="text-gray-600">
+                                Type: 
+                                <span class="px-2 py-1 rounded-full text-xs font-medium 
+                                    @if($order->order_type == 'dine_in') bg-blue-100 text-blue-800
+                                    @else bg-orange-100 text-orange-800
+                                    @endif">
+                                    {{ str_replace('_', ' ', ucfirst($order->order_type)) }}
+                                </span>
+                            </p>
+                            @if($order->order_type == 'dine_in')
+                                <p class="text-gray-600">Table: {{ $order->table_number }}</p>
+                            @endif
                             <p class="text-gray-600">Date: {{ $order->created_at->format('M d, Y H:i') }}</p>
                         </div>
                         <div class="text-right">

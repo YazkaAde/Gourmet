@@ -169,15 +169,18 @@ Route::middleware(['auth', 'role:customer', CheckBlacklist::class])->group(funct
     // Order Routes
     Route::prefix('orders')->name('customer.orders.')->group(function() {
         Route::get('/', [OrderController::class, 'index'])->name('index');
-        Route::get('/{order}', [OrderController::class, 'show'])->name('show');
-        Route::delete('/{order}/cancel', [OrderController::class, 'cancel'])->name('cancel');
         
-        // Payment routes untuk order biasa
-        Route::get('/{order}/payment', [OrderPaymentController::class, 'create'])
-            ->name('payment.create');
-        Route::post('/{order}/payment', [OrderPaymentController::class, 'store'])
-            ->name('payment.store');        
-        });
+        Route::get('/{order}/edit', [OrderController::class, 'edit'])->name('edit');
+        Route::get('/{order}/payment', [OrderPaymentController::class, 'create'])->name('payment.create');
+        Route::post('/{order}/payment', [OrderPaymentController::class, 'store'])->name('payment.store');
+        Route::post('/{order}/add-items', [OrderController::class, 'addItems'])->name('add-items');
+        Route::get('/{order}/add-items-modal', [OrderController::class, 'getAddItemsModal'])->name('add-items-modal');
+        
+        Route::post('/{order}/cancel', [OrderController::class, 'cancel'])->name('cancel');
+        
+        Route::get('/{order}', [OrderController::class, 'show'])->name('show');
+        Route::put('/{order}', [OrderController::class, 'update'])->name('update');
+    });
 
     // Customer Review Routes
     Route::prefix('reviews')->name('customer.reviews.')->group(function() {

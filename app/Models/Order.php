@@ -16,7 +16,9 @@ class Order extends Model
         'reservation_id',
         'table_number',
         'total_price',
-        'status'
+        'status',
+        'order_type',
+        'notes'
     ];
 
     protected $casts = [
@@ -80,5 +82,14 @@ class Order extends Model
     public function isFromReservation()
     {
         return !is_null($this->reservation_id);
+    }
+    public function isDineIn()
+    {
+        return $this->order_type === 'dine_in';
+    }
+
+    public function isTakeAway()
+    {
+        return $this->order_type === 'take_away';
     }
 }

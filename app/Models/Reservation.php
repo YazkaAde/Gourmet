@@ -190,12 +190,13 @@ class Reservation extends Model
     }
 
     public function shouldBeCompleted()
-    {
-        $isFullyPaid = $this->is_fully_paid;
-        
+{
+    $isFullyPaid = $this->is_fully_paid;
+    
+    if ($this->hasPreOrder()) {
         $allOrdersCompleted = true;
         foreach ($this->orders as $order) {
-            if ($order->status !== 'completed') {
+            if ($this->hasProcessingOrCompletedOrder() && $order->status !== 'completed') {
                 $allOrdersCompleted = false;
                 break;
             }
@@ -203,15 +204,10 @@ class Reservation extends Model
         
         try {
             $dateString = $this->reservation_date . ' ' . $this->end_time;
-            
-            if (!strtotime($dateString)) {
-                throw new \Exception('Invalid datetime format');
-            }
-            
             $reservationEndDateTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $dateString . ':00');
             $isTimePassed = now()->greaterThanOrEqualTo($reservationEndDateTime);
             
-            return ($isFullyPaid && $allOrdersCompleted) || $isTimePassed;
+            return $isFullyPaid && $allOrdersCompleted && $isTimePassed;
         } catch (\Exception $e) {
             \Log::error('DateTime parsing error in reservation', [
                 'id' => $this->id,
@@ -222,7 +218,25 @@ class Reservation extends Model
             
             return $isFullyPaid && $allOrdersCompleted;
         }
+    } else {
+        try {
+            $dateString = $this->reservation_date . ' ' . $this->end_time;
+            $reservationEndDateTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $dateString . ':00');
+            $isTimePassed = now()->greaterThanOrEqualTo($reservationEndDateTime);
+            
+            return $isFullyPaid && $isTimePassed;
+        } catch (\Exception $e) {
+            \Log::error('DateTime parsing error in reservation', [
+                'id' => $this->id,
+                'date' => $this->reservation_date,
+                'end_time' => $this->end_time,
+                'error' => $e->getMessage()
+            ]);
+            
+            return $isFullyPaid;
+        }
     }
+}
 
     public function checkAndUpdateStatus()
     {
@@ -316,23 +330,17 @@ class Reservation extends Model
         return $this->reservation_date->format('l, d-m-Y');
     }
 
-    public function hasProcessingOrder()
-    {
-        return $this->orders()
-            ->whereIn('status', ['processing'])
-            ->exists();
-    }
-
     // Logic untuk pre order
     public function isMenuEditable()
     {
         return in_array($this->status, ['pending', 'confirmed']) && 
             !$this->hasProcessingOrCompletedOrder();
     }
+
     public function hasProcessingOrCompletedOrder()
     {
         return $this->orders()
-            ->whereIn('status', ['processing', 'completed'])
+            ->whereIn('status', ['completed'])
             ->exists();
     }
 
@@ -341,4 +349,53 @@ class Reservation extends Model
         return !in_array($this->status, ['completed', 'cancelled']) && 
             !$this->hasProcessingOrCompletedOrder();
     }
+
+public function canReduceMenu()
+{
+    return in_array($this->status, ['pending', 'confirmed']) && 
+           !$this->hasProcessingOrCompletedOrder();
+}
+
+public function canAddMenu()
+{
+    return in_array($this->status, ['pending', 'confirmed']) && 
+           !$this->hasProcessingOrCompletedOrder();
+}
+
+public function hasProcessingOrder()
+{
+    return $this->orders()
+        ->where('status', 'processing')
+        ->exists();
+}
+
+public function hasPendingOrder()
+{
+    return $this->orders()
+        ->where('status', 'pending')
+        ->exists();
+}
+
+public function getAllOrderItems()
+{
+    return $this->orderItems()->with('menu')->get();
+}
+
+public function getGroupedOrderItems()
+{
+    return $this->orderItems()
+        ->with('menu')
+        ->get()
+        ->groupBy('menu_id');
+}
+
+public function refreshMenuTotal()
+{
+    $menuTotal = $this->orderItems()->sum('total_price');
+    $this->update([
+        'menu_total' => $menuTotal,
+        'total_amount' => $this->reservation_fee + $menuTotal
+    ]);
+    return $this;
+}
 }

@@ -60,7 +60,6 @@ class ReservationController extends Controller
                         $startTime = $request->reservation_time;
                         $endTime = $value;
                         
-                        // Debug log
                         Log::info('Time Validation', [
                             'start_time' => $startTime,
                             'end_time' => $endTime,
@@ -103,15 +102,20 @@ class ReservationController extends Controller
             'menu_items.*.quantity' => 'required_with:menu_items|integer|min:1',
         ]);
 
+        Log::info('Menu Items Received:', [
+            'menu_items_count' => count($validated['menu_items'] ?? []),
+            'menu_items' => $validated['menu_items'] ?? []
+        ]);
+
         $isTableAvailable = !Reservation::where('table_number', $validated['table_number'])
             ->where('reservation_date', $validated['reservation_date'])
             ->where(function($query) use ($validated) {
                 $query->whereBetween('reservation_time', [$validated['reservation_time'], $validated['end_time']])
-                      ->orWhereBetween('end_time', [$validated['reservation_time'], $validated['end_time']])
-                      ->orWhere(function($q) use ($validated) {
-                          $q->where('reservation_time', '<=', $validated['reservation_time'])
+                    ->orWhereBetween('end_time', [$validated['reservation_time'], $validated['end_time']])
+                    ->orWhere(function($q) use ($validated) {
+                        $q->where('reservation_time', '<=', $validated['reservation_time'])
                             ->where('end_time', '>=', $validated['end_time']);
-                      });
+                    });
             })
             ->whereIn('status', ['pending', 'confirmed'])
             ->exists();
@@ -132,45 +136,70 @@ class ReservationController extends Controller
         ]);
 
         if (!empty($validated['menu_items'])) {
+            $totalMenuAmount = 0;
+            
             foreach ($validated['menu_items'] as $menuItem) {
-                $menu = \App\Models\Menu::find($menuItem['menu_id']);
-                OrderItem::create([
-                    'reservation_id' => $reservation->id,
-                    'menu_id' => $menuItem['menu_id'],
-                    'quantity' => $menuItem['quantity'],
-                    'price' => $menu->price,
-                    'total_price' => $menu->price * $menuItem['quantity']
-                ]);
+                $menu = Menu::find($menuItem['menu_id']);
+                if ($menu) {
+                    $itemTotal = $menu->price * $menuItem['quantity'];
+                    $totalMenuAmount += $itemTotal;
+                    
+                    OrderItem::create([
+                        'reservation_id' => $reservation->id,
+                        'menu_id' => $menuItem['menu_id'],
+                        'quantity' => $menuItem['quantity'],
+                        'price' => $menu->price,
+                        'total_price' => $itemTotal
+                    ]);
+                    
+                    Log::info('Menu Item Created:', [
+                        'reservation_id' => $reservation->id,
+                        'menu_id' => $menuItem['menu_id'],
+                        'quantity' => $menuItem['quantity'],
+                        'price' => $menu->price,
+                        'total_price' => $itemTotal
+                    ]);
+                }
             }
+            
+            $reservation->update([
+                'menu_total' => $totalMenuAmount,
+                'total_amount' => $reservation->reservation_fee + $totalMenuAmount
+            ]);
         }
+
+        Log::info('Reservation Created Successfully:', [
+            'reservation_id' => $reservation->id,
+            'menu_items_count' => $reservation->orderItems->count(),
+            'total_amount' => $reservation->total_amount
+        ]);
 
         return redirect()->route('customer.reservations.show', $reservation)
             ->with('success', 'Reservasi berhasil dibuat. Silakan lakukan pembayaran DP untuk konfirmasi.');
     }
-
     public function show(Reservation $reservation)
-{
-    if ($reservation->user_id !== Auth::id()) {
-        abort(403);
+    {
+        if ($reservation->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $reservation->load(['table', 'orderItems.menu', 'payments', 'user', 'orders.orderItems.menu']);
+        
+        $categories = Category::all();
+        
+        $menus = Menu::with(['category', 'reviews'])
+            ->when(request('category'), function($query) {
+                return $query->where('category_id', request('category'));
+            })
+            ->withCount('reviews')
+            ->withAvg('reviews', 'rating')
+            ->paginate(8);
+
+        $reservation->checkAndUpdateStatus();
+        $reservation->refresh();
+
+        return view('customer.reservation.show', compact('reservation', 'menus', 'categories'));
     }
-
-    $reservation->load(['table', 'orderItems.menu', 'payments', 'user', 'orders.orderItems.menu']);
-    
-    $categories = Category::all();
-    
-    $menus = Menu::with(['category', 'reviews'])
-        ->when(request('category'), function($query) {
-            return $query->where('category_id', request('category'));
-        })
-        ->withCount('reviews')
-        ->withAvg('reviews', 'rating')
-        ->paginate(8);
-
-    $reservation->checkAndUpdateStatus();
-    $reservation->refresh();
-
-    return view('customer.reservation.show', compact('reservation', 'menus', 'categories'));
-}
 
     public function index()
     {
@@ -305,19 +334,22 @@ class ReservationController extends Controller
         }
         
         $categories = Category::all();
-        $menus = Menu::with('category')->paginate(12);
+        
+        $menus = Menu::with('category')
+            ->where('status', 'available')
+            ->paginate(12);
         
         if (request()->ajax() || request()->wantsJson() || request()->hasHeader('X-Requested-With')) {
-            return view('customer.reservation.partials.add-menu-modal', compact('reservation', 'menus'));
+            return view('customer.reservation.partials.add-menu-modal', compact('reservation', 'menus', 'categories'));
         }
         
         return redirect()->route('customer.reservations.show', $reservation)
-        ->with('info', 'Use the "Add Menu Items" button to add menu items.');
+            ->with('info', 'Use the "Add Menu Items" button to add menu items.');
     }
 
     public function updateMenuItems(Request $request, Reservation $reservation)
     {
-        if ($reservation->user_id !== Auth::id() || !$reservation->isMenuEditable()) {
+        if ($reservation->user_id !== Auth::id() || !$reservation->canAddMenu()) {
             return response()->json([
                 'success' => false, 
                 'message' => 'Menu items cannot be modified at this time'
@@ -334,9 +366,28 @@ class ReservationController extends Controller
             foreach ($validated['updates'] as $update) {
                 $orderItem = OrderItem::find($update['itemId']);
                 if ($orderItem && $orderItem->reservation_id === $reservation->id) {
+                    $originalQuantity = $orderItem->quantity;
+                    $newQuantity = $update['quantity'];
+                    
+                    if ($newQuantity < $originalQuantity && !$reservation->canReduceMenu()) {
+                        return response()->json([
+                            'success' => false, 
+                            'message' => 'Cannot reduce items when order is completed'
+                        ], 422);
+                    }
+                    
                     $orderItem->update([
-                        'quantity' => $update['quantity'],
-                        'total_price' => $orderItem->price * $update['quantity']
+                        'quantity' => $newQuantity,
+                        'total_price' => $orderItem->price * $newQuantity
+                    ]);
+
+                    Log::info('Menu item updated', [
+                        'reservation_id' => $reservation->id,
+                        'order_item_id' => $orderItem->id,
+                        'menu_id' => $orderItem->menu_id,
+                        'old_quantity' => $originalQuantity,
+                        'new_quantity' => $newQuantity,
+                        'order_status' => $reservation->orders()->first()->status ?? 'none'
                     ]);
                 }
             }
@@ -349,6 +400,7 @@ class ReservationController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            Log::error('Error updating menu items: ' . $e->getMessage());
             return response()->json([
                 'success' => false, 
                 'message' => 'Error updating items: ' . $e->getMessage()
@@ -358,36 +410,59 @@ class ReservationController extends Controller
 
     public function storeMenu(Request $request, Reservation $reservation)
     {
-        if ($reservation->user_id !== Auth::id() || !$reservation->isMenuEditable()) {
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => false, 
-                    'message' => 'Menu items cannot be modified at this time'
-                ], 403);
-            }
-            abort(403);
+        Log::info('Store Menu Request:', [
+            'reservation_id' => $reservation->id,
+            'user_id' => auth()->id(),
+            'request_data' => $request->all(),
+            'canAddMenu' => $reservation->canAddMenu(),
+            'status' => $reservation->status
+        ]);
+    
+        if ($reservation->user_id !== Auth::id() || !$reservation->canAddMenu()) {
+            Log::warning('Unauthorized menu addition attempt', [
+                'reservation_id' => $reservation->id,
+                'user_id' => auth()->id(),
+                'can_add_menu' => $reservation->canAddMenu()
+            ]);
+            
+            return response()->json([
+                'success' => false, 
+                'message' => 'Menu items cannot be added at this time. Reservation status: ' . $reservation->status
+            ], 403);
         }
 
         $validated = $request->validate([
             'menu_id' => 'required|exists:menus,id',
-            'quantity' => 'required|integer|min:1',
+            'quantity' => 'required|integer|min:1|max:20',
         ]);
 
         try {
+            Log::info('Adding menu item to reservation', [
+                'reservation_id' => $reservation->id,
+                'menu_id' => $validated['menu_id'],
+                'quantity' => $validated['quantity']
+            ]);
+
+            $menu = Menu::findOrFail($validated['menu_id']);
+            
             $existingItem = OrderItem::where('reservation_id', $reservation->id)
                 ->where('menu_id', $validated['menu_id'])
+                ->whereNull('order_id')
                 ->first();
 
-            $menu = \App\Models\Menu::find($validated['menu_id']);
-            
             if ($existingItem) {
+                $newQuantity = $existingItem->quantity + $validated['quantity'];
                 $existingItem->update([
-                    'quantity' => $existingItem->quantity + $validated['quantity'],
-                    'total_price' => $menu->price * ($existingItem->quantity + $validated['quantity'])
+                    'quantity' => $newQuantity,
+                    'total_price' => $menu->price * $newQuantity
                 ]);
                 $message = 'Menu item quantity updated successfully!';
+                Log::info('Updated existing menu item', [
+                    'order_item_id' => $existingItem->id,
+                    'new_quantity' => $newQuantity
+                ]);
             } else {
-                OrderItem::create([
+                $orderItem = OrderItem::create([
                     'reservation_id' => $reservation->id,
                     'menu_id' => $validated['menu_id'],
                     'quantity' => $validated['quantity'],
@@ -395,42 +470,43 @@ class ReservationController extends Controller
                     'total_price' => $menu->price * $validated['quantity']
                 ]);
                 $message = 'Menu item added successfully!';
-            }
-
-            $reservation->syncOrderItems();
-            $reservation->refresh();
-
-            if ($request->ajax() || $request->wantsJson() || $request->hasHeader('X-Requested-With')) {
-                return response()->json([
-                    'success' => true,
-                    'message' => $message,
-                    'updated_reservation' => [
-                        'order_items_count' => $reservation->orderItems->count(),
-                        'order_items' => $reservation->orderItems->map(function($item) {
-                            return [
-                                'menu_name' => $item->menu->name,
-                                'quantity' => $item->quantity,
-                                'total_price' => $item->total_price
-                            ];
-                        })->values(),
-                        'menu_total' => $reservation->menu_total,
-                        'total_amount' => $reservation->total_amount,
-                        'down_payment_amount' => $reservation->down_payment_amount
-                    ]
+                Log::info('Created new menu item', [
+                    'order_item_id' => $orderItem->id
                 ]);
             }
 
-            return back()->with('success', $message);
+            $reservation->refreshMenuTotal();
+            $reservation->refresh();
+
+            Log::info('Reservation after menu addition', [
+                'reservation_id' => $reservation->id,
+                'menu_total' => $reservation->menu_total,
+                'total_amount' => $reservation->total_amount,
+                'order_items_count' => $reservation->orderItems->count()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'updated_reservation' => [
+                    'order_items_count' => $reservation->orderItems->count(),
+                    'menu_total' => $reservation->menu_total,
+                    'total_amount' => $reservation->total_amount,
+                    'down_payment_amount' => $reservation->down_payment_amount
+                ]
+            ]);
 
         } catch (\Exception $e) {
-            if ($request->ajax() || $request->wantsJson() || $request->hasHeader('X-Requested-With')) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Error: ' . $e->getMessage()
-                ], 500);
-            }
+            Log::error('Error adding menu item: ' . $e->getMessage(), [
+                'reservation_id' => $reservation->id,
+                'menu_id' => $validated['menu_id'] ?? 'unknown',
+                'exception' => $e->getTraceAsString()
+            ]);
             
-            return back()->with('error', 'Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
         }
     }
 

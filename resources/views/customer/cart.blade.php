@@ -140,383 +140,472 @@
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            let selectedItems = new Set();
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let selectedItems = new Set();
+        
+        function updateSelectionUI() {
+            const selectedCount = selectedItems.size;
+            const totalItems = document.querySelectorAll('.item-checkbox').length;
             
-            // Fungsi untuk mengupdate selection UI
-            function updateSelectionUI() {
-                const selectedCount = selectedItems.size;
-                const totalItems = document.querySelectorAll('.item-checkbox').length;
-                
-                // Update selected count
-                document.getElementById('selected-count').textContent = selectedCount;
-                
-                // Update select all checkbox
-                const selectAll = document.getElementById('select-all');
-                if (selectedCount === 0) {
-                    selectAll.checked = false;
-                    selectAll.indeterminate = false;
-                } else if (selectedCount === totalItems) {
-                    selectAll.checked = true;
-                    selectAll.indeterminate = false;
+            document.getElementById('selected-count').textContent = selectedCount;
+            
+            const selectAll = document.getElementById('select-all');
+            if (selectedCount === 0) {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+            } else if (selectedCount === totalItems) {
+                selectAll.checked = true;
+                selectAll.indeterminate = false;
+            } else {
+                selectAll.checked = false;
+                selectAll.indeterminate = true;
+            }
+            
+            const removeSelectedBtn = document.getElementById('remove-selected');
+            removeSelectedBtn.disabled = selectedCount === 0;
+            
+            const checkoutBtn = document.querySelector('.checkout-btn');
+            checkoutBtn.disabled = selectedCount === 0;
+            
+            updateSelectedTotal();
+        }
+        
+        function updateSelectedTotal() {
+            let selectedTotal = 0;
+            
+            document.querySelectorAll('.item-checkbox:checked').forEach(function(checkbox) {
+                selectedTotal += parseFloat(checkbox.getAttribute('data-price')) || 0;
+            });
+            
+            document.getElementById('selected-total').textContent = `Selected: Rp ${selectedTotal.toLocaleString()}`;
+        }
+        
+        document.getElementById('select-all').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.item-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+                if (this.checked) {
+                    selectedItems.add(checkbox.value);
                 } else {
-                    selectAll.checked = false;
-                    selectAll.indeterminate = true;
+                    selectedItems.delete(checkbox.value);
+                }
+            });
+            updateSelectionUI();
+        });
+        
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('item-checkbox')) {
+                if (e.target.checked) {
+                    selectedItems.add(e.target.value);
+                } else {
+                    selectedItems.delete(e.target.value);
+                }
+                updateSelectionUI();
+            }
+        });
+        
+        document.getElementById('remove-selected').addEventListener('click', function() {
+            if (selectedItems.size === 0) return;
+            
+            if (!confirm(`Are you sure you want to remove ${selectedItems.size} item(s) from your cart?`)) {
+                return;
+            }
+            
+            fetch('{{ route("customer.cart.destroy-multiple") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    cart_ids: Array.from(selectedItems)
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    selectedItems.forEach(cartId => {
+                        const item = document.querySelector(`.cart-item[data-cart-id="${cartId}"]`);
+                        if (item) {
+                            item.remove();
+                        }
+                    });
+                    
+                    selectedItems.clear();
+                    updateSelectionUI();
+                    updateTotals();
+                    
+                    if (document.querySelectorAll('.cart-item').length === 0) {
+                        window.location.reload();
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error removing items:', error);
+                alert('Error removing selected items');
+            });
+        });
+
+        function updateQuantityControl(input) {
+            const cartId = input.getAttribute('data-cart-id');
+            const min = parseInt(input.getAttribute('min')) || 1;
+            const currentValue = parseInt(input.value) || min;
+            const decrementBtn = document.querySelector(`.quantity-decrement[data-cart-id="${cartId}"]`);
+            
+            if (isNaN(currentValue) || currentValue < min) {
+                input.value = min;
+            }
+            
+            if (decrementBtn) {
+                decrementBtn.disabled = parseInt(input.value) <= min;
+            }
+        }
+        
+        function updateTotals() {
+            let grandTotal = 0;
+            
+            document.querySelectorAll('.quantity-input').forEach(function(input) {
+                const cartId = input.getAttribute('data-cart-id');
+                const price = parseInt(input.getAttribute('data-price'));
+                const quantity = parseInt(input.value) || 1;
+                const itemTotal = price * quantity;
+                
+                const itemTotalElement = document.querySelector(`.item-total[data-cart-id="${cartId}"]`);
+                if (itemTotalElement) {
+                    itemTotalElement.textContent = `Total: Rp ${itemTotal.toLocaleString()}`;
                 }
                 
-                // Update remove selected button
-                const removeSelectedBtn = document.getElementById('remove-selected');
-                removeSelectedBtn.disabled = selectedCount === 0;
+                const checkbox = document.querySelector(`.item-checkbox[value="${cartId}"]`);
+                if (checkbox) {
+                    checkbox.setAttribute('data-price', itemTotal);
+                }
                 
-                // Update checkout button
-                const checkoutBtn = document.querySelector('.checkout-btn');
-                checkoutBtn.disabled = selectedCount === 0;
-                
-                // Update selected total
+                grandTotal += itemTotal;
+            });
+            
+            const cartTotalElement = document.getElementById('cart-total');
+            if (cartTotalElement) {
+                cartTotalElement.textContent = `Total: Rp ${grandTotal.toLocaleString()}`;
+            }
+            
+            if (selectedItems.size > 0) {
                 updateSelectedTotal();
             }
             
-            // Fungsi untuk mengupdate total item yang dipilih
-            function updateSelectedTotal() {
-                let selectedTotal = 0;
-                
-                document.querySelectorAll('.item-checkbox:checked').forEach(function(checkbox) {
-                    selectedTotal += parseFloat(checkbox.getAttribute('data-price')) || 0;
-                });
-                
-                document.getElementById('selected-total').textContent = `Selected: Rp ${selectedTotal.toLocaleString()}`;
-            }
-            
-            // Handle select all checkbox
-            document.getElementById('select-all').addEventListener('change', function() {
-                const checkboxes = document.querySelectorAll('.item-checkbox');
-                checkboxes.forEach(checkbox => {
-                    checkbox.checked = this.checked;
-                    if (this.checked) {
-                        selectedItems.add(checkbox.value);
-                    } else {
-                        selectedItems.delete(checkbox.value);
-                    }
-                });
-                updateSelectionUI();
-            });
-            
-            // Handle individual item checkboxes
-            document.addEventListener('change', function(e) {
-                if (e.target.classList.contains('item-checkbox')) {
-                    if (e.target.checked) {
-                        selectedItems.add(e.target.value);
-                    } else {
-                        selectedItems.delete(e.target.value);
-                    }
-                    updateSelectionUI();
-                }
-            });
-            
-            // Handle remove selected button
-            document.getElementById('remove-selected').addEventListener('click', function() {
-                if (selectedItems.size === 0) return;
-                
-                if (!confirm(`Are you sure you want to remove ${selectedItems.size} item(s) from your cart?`)) {
-                    return;
-                }
-                
-                fetch('{{ route("customer.cart.destroy-multiple") }}', {
+            return grandTotal;
+        }
+        
+        function submitUpdateForm(cartId) {
+            const form = document.getElementById(`form-${cartId}`);
+            if (form) {
+                fetch(form.action, {
                     method: 'POST',
+                    body: new FormData(form),
                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
                         'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: JSON.stringify({
-                        cart_ids: Array.from(selectedItems)
-                    })
+                    }
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.success) {
-                        // Remove selected items from DOM
-                        selectedItems.forEach(cartId => {
-                            const item = document.querySelector(`.cart-item[data-cart-id="${cartId}"]`);
-                            if (item) {
-                                item.remove();
-                            }
-                        });
-                        
-                        selectedItems.clear();
-                        updateSelectionUI();
-                        updateTotals();
-                        
-                        // Check if cart is empty
-                        if (document.querySelectorAll('.cart-item').length === 0) {
-                            window.location.reload();
+                        console.log('Quantity updated successfully');
+                        const checkbox = document.querySelector(`.item-checkbox[value="${cartId}"]`);
+                        if (checkbox && checkbox.checked) {
+                            checkbox.setAttribute('data-price', data.new_total);
+                            updateSelectedTotal();
                         }
                     }
                 })
                 .catch(error => {
-                    console.error('Error removing items:', error);
-                    alert('Error removing selected items');
+                    console.error('Error updating quantity:', error);
                 });
-            });
+            }
+        }
 
-            // Fungsi untuk mengupdate kontrol kuantitas
-            function updateQuantityControl(input) {
-                const cartId = input.getAttribute('data-cart-id');
-                const min = parseInt(input.getAttribute('min')) || 1;
-                const currentValue = parseInt(input.value) || min;
-                const decrementBtn = document.querySelector(`.quantity-decrement[data-cart-id="${cartId}"]`);
+        const checkoutBtn = document.querySelector('.checkout-btn');
+        if (checkoutBtn) {
+            checkoutBtn.addEventListener('click', async function() {
+                if (selectedItems.size === 0) return;
                 
-                if (isNaN(currentValue) || currentValue < min) {
-                    input.value = min;
-                }
-                
-                if (decrementBtn) {
-                    decrementBtn.disabled = parseInt(input.value) <= min;
-                }
-            }
-            
-            // Fungsi untuk mengupdate total per item dan total keseluruhan
-            function updateTotals() {
-                let grandTotal = 0;
-                
-                document.querySelectorAll('.quantity-input').forEach(function(input) {
-                    const cartId = input.getAttribute('data-cart-id');
-                    const price = parseInt(input.getAttribute('data-price'));
-                    const quantity = parseInt(input.value) || 1;
-                    const itemTotal = price * quantity;
+                try {
+                    const response = await fetch('{{ route("api.available-tables") }}');
+                    const tables = await response.json();
                     
-                    // Update total per item
-                    const itemTotalElement = document.querySelector(`.item-total[data-cart-id="${cartId}"]`);
-                    if (itemTotalElement) {
-                        itemTotalElement.textContent = `Total: Rp ${itemTotal.toLocaleString()}`;
-                    }
-                    
-                    // Update data-price attribute on checkbox
-                    const checkbox = document.querySelector(`.item-checkbox[value="${cartId}"]`);
-                    if (checkbox) {
-                        checkbox.setAttribute('data-price', itemTotal);
-                    }
-                    
-                    grandTotal += itemTotal;
-                });
-                
-                // Update total keseluruhan
-                const cartTotalElement = document.getElementById('cart-total');
-                if (cartTotalElement) {
-                    cartTotalElement.textContent = `Total: Rp ${grandTotal.toLocaleString()}`;
-                }
-                
-                // Update selected total jika ada item yang dipilih
-                if (selectedItems.size > 0) {
-                    updateSelectedTotal();
-                }
-                
-                return grandTotal;
-            }
-            
-            // Fungsi untuk mengirim form update
-            function submitUpdateForm(cartId) {
-                const form = document.getElementById(`form-${cartId}`);
-                if (form) {
-                    // Buat request AJAX
-                    fetch(form.action, {
-                        method: 'POST',
-                        body: new FormData(form),
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data.success) {
-                            console.log('Quantity updated successfully');
-                            // Update checkbox data-price attribute
-                            const checkbox = document.querySelector(`.item-checkbox[value="${cartId}"]`);
-                            if (checkbox && checkbox.checked) {
-                                checkbox.setAttribute('data-price', data.new_total);
-                                updateSelectedTotal();
-                            }
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error updating quantity:', error);
-                    });
-                }
-            }
-            
-            // Handle checkout button
-            const checkoutBtn = document.querySelector('.checkout-btn');
-            if (checkoutBtn) {
-                checkoutBtn.addEventListener('click', async function() {
-                    if (selectedItems.size === 0) return;
-                    
-                    try {
-                        // Ambil daftar meja dari server
-                        const response = await fetch('{{ route("api.available-tables") }}');
-                        const tables = await response.json();
-                        
-                        if (tables.length === 0) {
-                            alert('No tables available at the moment.');
-                            return;
-                        }
-                        
-                        // Buat form untuk memilih meja
-                        let tableOptions = '';
-                        tables.forEach(table => {
-                            tableOptions += `<option value="${table.table_number}">Table ${table.table_number} (Capacity: ${table.table_capacity})</option>`;
-                        });
-                        
-                        const tableForm = `
-                            <div class="p-4">
-                                <h3 class="text-lg font-medium mb-3">Checkout ${selectedItems.size} Selected Item(s)</h3>
-                                <p class="text-sm text-gray-600 mb-3">Select table for your order:</p>
-                                <select id="table-select" class="w-full p-2 border border-gray-300 rounded mb-3">
-                                    ${tableOptions}
-                                </select>
-                                <div class="flex justify-end gap-2">
-                                    <button type="button" id="cancel-table" class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
-                                    <button type="button" id="confirm-table" class="px-4 py-2 bg-primary-600 text-white rounded">Confirm Checkout</button>
+                    const modalHTML = `
+                        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div class="bg-white rounded-lg w-96 max-h-[90vh] overflow-y-auto">
+                                <div class="p-6">
+                                    <h3 class="text-lg font-semibold mb-4">Checkout ${selectedItems.size} Item(s)</h3>
+                                    
+                                    <!-- Order Type Selection -->
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            How would you like to receive your order?
+                                        </label>
+                                        <div class="space-y-2">
+                                            <label class="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                                                <input type="radio" name="order_type" value="dine_in" checked 
+                                                    class="order-type-radio mr-3 text-primary-600 focus:ring-primary-500">
+                                                <div>
+                                                    <div class="font-medium">Dine In</div>
+                                                    <div class="text-sm text-gray-500">Eat at our restaurant</div>
+                                                </div>
+                                            </label>
+                                            
+                                            <label class="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                                                <input type="radio" name="order_type" value="take_away" 
+                                                    class="order-type-radio mr-3 text-primary-600 focus:ring-primary-500">
+                                                <div>
+                                                    <div class="font-medium">Take Away</div>
+                                                    <div class="text-sm text-gray-500">Take food to go</div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Table Selection (hanya untuk dine-in) -->
+                                    <div id="table-section" class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            Select Table
+                                        </label>
+                                        <select id="table-select" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                            ${tables.length > 0 ? 
+                                                tables.map(table => 
+                                                    `<option value="${table.table_number}">
+                                                        Table ${table.table_number} (Capacity: ${table.table_capacity})
+                                                    </option>`
+                                                ).join('') : 
+                                                '<option value="">No tables available</option>'
+                                            }
+                                        </select>
+                                        ${tables.length === 0 ? 
+                                            '<p class="text-sm text-red-600 mt-2">No tables available for dine-in at the moment</p>' : 
+                                            ''
+                                        }
+                                    </div>
+                                    
+                                    <!-- Notes Section -->
+                                    <div class="mb-6">
+                                        <label for="order-notes" class="block text-sm font-medium text-gray-700 mb-2">
+                                            Special Instructions (Optional)
+                                        </label>
+                                        <textarea id="order-notes" 
+                                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" 
+                                                rows="3" 
+                                                placeholder="Any special requests, allergies, or cooking instructions..."></textarea>
+                                    </div>
+                                    
+                                    <!-- Action Buttons -->
+                                    <div class="flex gap-3">
+                                        <button type="button" id="cancel-checkout" 
+                                                class="flex-1 px-4 py-3 bg-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-400 transition-colors">
+                                            Cancel
+                                        </button>
+                                        <button type="button" id="confirm-checkout" 
+                                                class="flex-1 px-4 py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors">
+                                            Place Order
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        `;
+                        </div>
+                    `;
+                    
+                    const modalContainer = document.createElement('div');
+                    modalContainer.innerHTML = modalHTML;
+                    document.body.appendChild(modalContainer);
+                    
+                    const modal = modalContainer.firstElementChild;
+                    
+                    function toggleTableSection() {
+                        const tableSection = document.getElementById('table-section');
+                        const orderType = document.querySelector('input[name="order_type"]:checked').value;
                         
-                        // Tampilkan modal
-                        const modal = document.createElement('div');
-                        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-                        modal.innerHTML = `
-                            <div class="bg-white rounded-lg w-96">
-                                ${tableForm}
-                            </div>
-                        `;
-                        
-                        document.body.appendChild(modal);
-                        
-                        // Handle confirm button
-                        document.getElementById('confirm-table').addEventListener('click', function() {
-                            const selectedTable = document.getElementById('table-select').value;
-                            modal.remove();
-                            
-                            checkoutBtn.disabled = true;
-                            checkoutBtn.innerHTML = `
-                                <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                Processing...
-                            `;
-                            
-                            fetch('{{ route("customer.cart.checkout") }}', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                    'X-Requested-With': 'XMLHttpRequest'
-                                },
-                                body: JSON.stringify({
-                                    table_number: selectedTable,
-                                    selected_cart_ids: Array.from(selectedItems)
-                                })
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.success) {
-                                    alert('Order created successfully! Your order ID: ' + data.order_id);
-                                    window.location.href = '{{ route("customer.orders.index") }}';
-                                } else {
-                                    alert('Error: ' + data.message);
-                                    checkoutBtn.disabled = false;
-                                    checkoutBtn.innerHTML = `
-                                        <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7 7V5"/>
-                                        </svg>
-                                        Checkout Selected
-                                    `;
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Error:', error);
-                                alert('An error occurred during checkout');
-                                checkoutBtn.disabled = false;
-                                checkoutBtn.innerHTML = `
-                                    <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7 7V5"/>
-                                    </svg>
-                                    Checkout Selected
-                                `;
-                            });
-                        });
-                        
-                        document.getElementById('cancel-table').addEventListener('click', function() {
-                            modal.remove();
-                        });
-                        
-                    } catch (error) {
-                        console.error('Error fetching tables:', error);
-                        alert('Error loading table information');
+                        if (orderType === 'take_away') {
+                            tableSection.style.display = 'none';
+                        } else {
+                            tableSection.style.display = 'block';
+                        }
                     }
-                });
+                    
+                    document.querySelectorAll('.order-type-radio').forEach(radio => {
+                        radio.addEventListener('change', toggleTableSection);
+                    });
+                    
+                    document.getElementById('cancel-checkout').addEventListener('click', function() {
+                        document.body.removeChild(modalContainer);
+                    });
+                    
+                    document.getElementById('confirm-checkout').addEventListener('click', function() {
+                        const orderType = document.querySelector('input[name="order_type"]:checked').value;
+                        const tableSelect = document.getElementById('table-select');
+                        const tableNumber = orderType === 'dine_in' ? (tableSelect ? tableSelect.value : null) : null;
+                        const notes = document.getElementById('order-notes').value;
+                        
+                        console.log('Checkout Data:', {
+                            order_type: orderType,
+                            table_number: tableNumber,
+                            notes: notes,
+                            selected_cart_ids: Array.from(selectedItems)
+                        });
+                        
+                        if (orderType === 'dine_in') {
+                            if (!tableNumber || tableNumber === '' || tableNumber === 'null') {
+                                alert('Please select a table for dine-in order');
+                                return;
+                            }
+                        }
+                        
+                        document.body.removeChild(modalContainer);
+                        
+                        checkoutBtn.disabled = true;
+                        checkoutBtn.innerHTML = `Processing Order...`;
+                        
+                        const checkoutData = {
+                            order_type: orderType,
+                            notes: notes,
+                            selected_cart_ids: Array.from(selectedItems)
+                        };
+                        
+                        if (orderType === 'dine_in' && tableNumber) {
+                            checkoutData.table_number = tableNumber;
+                        }
+                        
+                        console.log('Final Checkout Data:', checkoutData);
+                        
+                        fetch('{{ route("customer.cart.checkout") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: JSON.stringify(checkoutData)
+                        })
+                        .then(response => {
+                            console.log('Response status:', response.status);
+                            return response.json().then(data => {
+                                return { status: response.status, data: data };
+                            });
+                        })
+                        .then(({ status, data }) => {
+                            console.log('Response data:', data);
+                            
+                            if (status === 422) {
+                                let errorMessage = 'Validation error: ';
+                                if (data.errors) {
+                                    Object.values(data.errors).forEach(errors => {
+                                        errorMessage += errors.join(', ');
+                                    });
+                                } else {
+                                    errorMessage += data.message || 'Unknown validation error';
+                                }
+                                alert(errorMessage);
+                                resetCheckoutButton();
+                                return;
+                            }
+                            
+                            if (data.success) {
+                                window.location.href = '{{ route("customer.orders.index") }}?success=' + encodeURIComponent('Order created successfully! Order ID: ' + data.order_id);
+                            } else {
+                                alert('Error: ' + (data.message || 'Unknown error occurred'));
+                                resetCheckoutButton();
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('An error occurred while processing your order. Please try again.');
+                            resetCheckoutButton();
+                        });
+                    });
+
+                    function resetCheckoutButton() {
+                        const checkoutBtn = document.querySelector('.checkout-btn');
+                        if (checkoutBtn) {
+                            checkoutBtn.disabled = false;
+                            checkoutBtn.innerHTML = `
+                                <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7 7V5"/>
+                                </svg>
+                                Checkout Selected
+                            `;
+                        }
+                    }
+                    
+                    modal.addEventListener('click', function(e) {
+                        if (e.target === modal) {
+                            document.body.removeChild(modalContainer);
+                        }
+                    });
+                    
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error loading checkout information. Please try again.');
+                }
+            });
+        }
+        
+        document.addEventListener('click', function(e) {
+            const incrementBtn = e.target.closest('.quantity-increment');
+            const decrementBtn = e.target.closest('.quantity-decrement');
+            
+            if (incrementBtn) {
+                const cartId = incrementBtn.getAttribute('data-cart-id');
+                const input = document.querySelector(`.quantity-input[data-cart-id="${cartId}"]`);
+                input.value = parseInt(input.value) + 1;
+                updateQuantityControl(input);
+                updateTotals();
+                submitUpdateForm(cartId);
             }
             
-            document.addEventListener('click', function(e) {
-                const incrementBtn = e.target.closest('.quantity-increment');
-                const decrementBtn = e.target.closest('.quantity-decrement');
+            if (decrementBtn && !decrementBtn.disabled) {
+                const cartId = decrementBtn.getAttribute('data-cart-id');
+                const input = document.querySelector(`.quantity-input[data-cart-id="${cartId}"]`);
+                const min = parseInt(input.getAttribute('min')) || 1;
+                const currentValue = parseInt(input.value) || min;
                 
-                if (incrementBtn) {
-                    const cartId = incrementBtn.getAttribute('data-cart-id');
-                    const input = document.querySelector(`.quantity-input[data-cart-id="${cartId}"]`);
-                    input.value = parseInt(input.value) + 1;
+                if (currentValue > min) {
+                    input.value = currentValue - 1;
                     updateQuantityControl(input);
                     updateTotals();
                     submitUpdateForm(cartId);
                 }
-                
-                if (decrementBtn && !decrementBtn.disabled) {
-                    const cartId = decrementBtn.getAttribute('data-cart-id');
-                    const input = document.querySelector(`.quantity-input[data-cart-id="${cartId}"]`);
-                    const min = parseInt(input.getAttribute('min')) || 1;
-                    const currentValue = parseInt(input.value) || min;
-                    
-                    if (currentValue > min) {
-                        input.value = currentValue - 1;
-                        updateQuantityControl(input);
-                        updateTotals();
-                        submitUpdateForm(cartId);
-                    }
-                }
-            });
-            
-            document.addEventListener('input', function(e) {
-                if (e.target.classList.contains('quantity-input')) {
-                    const cartId = e.target.getAttribute('data-cart-id');
-                    updateQuantityControl(e.target);
-                    updateTotals();
-                    
-                    clearTimeout(window[`debounceTimeout_${cartId}`]);
-                    window[`debounceTimeout_${cartId}`] = setTimeout(() => {
-                        submitUpdateForm(cartId);
-                    }, 800);
-                }
-            });
-            
-            document.addEventListener('change', function(e) {
-                if (e.target.classList.contains('quantity-input')) {
-                    const cartId = e.target.getAttribute('data-cart-id');
-                    updateQuantityControl(e.target);
-                    updateTotals();
-                    submitUpdateForm(cartId);
-                }
-            });
-            
-            document.querySelectorAll('.quantity-input').forEach(function(input) {
-                updateQuantityControl(input);
-            });
+            }
         });
-    </script>
+        
+        document.addEventListener('input', function(e) {
+            if (e.target.classList.contains('quantity-input')) {
+                const cartId = e.target.getAttribute('data-cart-id');
+                updateQuantityControl(e.target);
+                updateTotals();
+                
+                clearTimeout(window[`debounceTimeout_${cartId}`]);
+                window[`debounceTimeout_${cartId}`] = setTimeout(() => {
+                    submitUpdateForm(cartId);
+                }, 800);
+            }
+        });
+        
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('quantity-input')) {
+                const cartId = e.target.getAttribute('data-cart-id');
+                updateQuantityControl(e.target);
+                updateTotals();
+                submitUpdateForm(cartId);
+            }
+        });
+        
+        document.querySelectorAll('.quantity-input').forEach(function(input) {
+            updateQuantityControl(input);
+        });
+    });
+</script>
 </x-app-layout>
