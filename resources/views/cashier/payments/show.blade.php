@@ -23,6 +23,12 @@
                                     <p class="font-medium">
                                         @if($payment->order_id)
                                             Order Payment
+                                            @if($payment->order && $payment->order->order_type)
+                                                <span class="ml-2 px-2 py-1 text-xs rounded 
+                                                    {{ $payment->order->order_type == 'dine_in' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800' }}">
+                                                    {{ str_replace('_', ' ', ucfirst($payment->order->order_type)) }}
+                                                </span>
+                                            @endif
                                         @elseif($payment->reservation_id)
                                             Reservation Payment
                                         @else
@@ -73,6 +79,14 @@
                                     <p class="text-sm text-gray-600">Customer Name</p>
                                     <p class="font-medium">{{ $payment->order->user->name }}</p>
                                 </div>
+                                <div>
+                                    <p class="text-sm text-gray-600">Order Type</p>
+                                    <p class="font-medium">
+                                        <span class="{{ $payment->order->order_type == 'dine_in' ? 'text-blue-600' : 'text-orange-600' }}">
+                                            {{ str_replace('_', ' ', ucfirst($payment->order->order_type)) }}
+                                        </span>
+                                    </p>
+                                </div>
                                 @elseif($payment->reservation_id && $payment->reservation && $payment->reservation->user)
                                 <div>
                                     <p class="text-sm text-gray-600">Customer Name</p>
@@ -88,7 +102,7 @@
                                 @if($payment->order_id && $payment->order)
                                 <div>
                                     <p class="text-sm text-gray-600">Table Number</p>
-                                    <p class="font-medium">{{ $payment->order->table_number }}</p>
+                                    <p class="font-medium">{{ $payment->order->table_number ?? 'N/A' }}</p>
                                 </div>
                                 <div>
                                     <p class="text-sm text-gray-600">Order Date</p>
@@ -137,7 +151,81 @@
                         </div>
                     </div>
 
-                    <!-- Order Items (jika order payment) -->
+                    <!-- Payment History untuk Reservation -->
+                    @if($payment->reservation_id && $payment->reservation && $payment->reservation->payments->count() > 0)
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold mb-4">Payment History</h3>
+                        <div class="border rounded-lg overflow-hidden">
+                            <table class="min-w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment ID</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    @foreach($payment->reservation->payments->sortBy('created_at') as $reservationPayment)
+                                    <tr class="{{ $reservationPayment->id == $payment->id ? 'bg-blue-50' : '' }}">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            #{{ $reservationPayment->id }}
+                                            @if($reservationPayment->id == $payment->id)
+                                                <span class="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">Current</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">{{ $reservationPayment->created_at->format('M d, Y H:i') }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">Rp {{ number_format($reservationPayment->amount, 0) }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 py-1 rounded-full text-xs font-medium 
+                                                @if($reservationPayment->status == 'paid') bg-green-100 text-green-800
+                                                @elseif($reservationPayment->status == 'pending') bg-yellow-100 text-yellow-800
+                                                @else bg-red-100 text-red-800
+                                                @endif">
+                                                {{ ucfirst($reservationPayment->status) }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            {{ ucfirst(str_replace('_', ' ', $reservationPayment->payment_method)) }}
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                                <tfoot class="bg-gray-50">
+                                    <tr>
+                                        <td colspan="2" class="px-6 py-4 text-right font-medium">Total Paid:</td>
+                                        <td class="px-6 py-4 font-bold">
+                                            Rp {{ number_format($payment->reservation->payments->where('status', 'paid')->sum('amount'), 0) }}
+                                        </td>
+                                        <td colspan="2"></td>
+                                    </tr>
+                                    @php
+                                        $totalAmount = $payment->reservation->total_amount ?? $payment->reservation->payments->sum('amount');
+                                        $totalPaid = $payment->reservation->payments->where('status', 'paid')->sum('amount');
+                                        $remaining = $totalAmount - $totalPaid;
+                                    @endphp
+                                    <tr>
+                                        <td colspan="2" class="px-6 py-4 text-right font-medium">Total Amount:</td>
+                                        <td class="px-6 py-4 font-bold">
+                                            Rp {{ number_format($totalAmount, 0) }}
+                                        </td>
+                                        <td colspan="2"></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2" class="px-6 py-4 text-right font-medium">Remaining Balance:</td>
+                                        <td class="px-6 py-4 font-bold {{ $remaining > 0 ? 'text-orange-600' : 'text-green-600' }}">
+                                            Rp {{ number_format($remaining, 0) }}
+                                        </td>
+                                        <td colspan="2"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                    @endif
+
+                    <!-- Order Items -->
                     @if($payment->order_id && $payment->order)
                     <div class="mb-8">
                         <h3 class="text-lg font-semibold mb-4">Order Items</h3>
@@ -184,10 +272,10 @@
                     </div>
                     @endif
 
-                    <!-- Pre-Order Items (jika reservation payment) -->
-                    @if($payment->reservation_id && $payment->reservation && $payment->reservation->preOrderItems->count() > 0)
+                    <!-- Pre-Order Items -->
+                    @if($payment->reservation_id && $payment->reservation)
                     <div class="mb-8">
-                        <h3 class="text-lg font-semibold mb-4">Pre-Order Items</h3>
+                        <h3 class="text-lg font-semibold mb-4">Reservation Menu Items</h3>
                         <div class="border rounded-lg overflow-hidden">
                             <table class="min-w-full">
                                 <thead class="bg-gray-50">
@@ -199,37 +287,88 @@
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
-                                    @foreach($payment->reservation->preOrderItems as $preOrderItem)
-                                    <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="flex items-center">
-                                                @if($preOrderItem->menu->image_url)
-                                                <img src="{{ asset('storage/' . $preOrderItem->menu->image_url) }}" 
-                                                     alt="{{ $preOrderItem->menu->name }}"
-                                                     class="w-10 h-10 object-cover rounded mr-3"
-                                                     onerror="this.style.display='none'">
-                                                @endif
-                                                <div>
-                                                    <p class="font-medium text-gray-900">{{ $preOrderItem->menu->name }}</p>
+                                    @if($payment->reservation->preOrderItems && $payment->reservation->preOrderItems->count() > 0)
+                                        @foreach($payment->reservation->preOrderItems as $item)
+                                        @if($item->menu)
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="flex items-center">
+                                                    @if($item->menu->image_url)
+                                                    <img src="{{ asset('storage/' . $item->menu->image_url) }}" 
+                                                        alt="{{ $item->menu->name }}"
+                                                        class="w-10 h-10 object-cover rounded mr-3"
+                                                        onerror="this.style.display='none'">
+                                                    @endif
+                                                    <div>
+                                                        <p class="font-medium text-gray-900">{{ $item->menu->name }}</p>
+                                                        <p class="text-sm text-gray-500">Pre-Order</p>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">{{ $preOrderItem->quantity }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap">Rp {{ number_format($preOrderItem->price, 0) }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap">Rp {{ number_format($preOrderItem->price * $preOrderItem->quantity, 0) }}</td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                                <tfoot class="bg-gray-50">
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">{{ $item->quantity }}</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">Rp {{ number_format($item->price, 0) }}</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">Rp {{ number_format($item->price * $item->quantity, 0) }}</td>
+                                        </tr>
+                                        @endif
+                                        @endforeach
+                                    @elseif($payment->reservation->orderItems && $payment->reservation->orderItems->count() > 0)
+                                        @foreach($payment->reservation->orderItems as $item)
+                                        @if($item->menu)
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="flex items-center">
+                                                    @if($item->menu->image_url)
+                                                    <img src="{{ asset('storage/' . $item->menu->image_url) }}" 
+                                                        alt="{{ $item->menu->name }}"
+                                                        class="w-10 h-10 object-cover rounded mr-3"
+                                                        onerror="this.style.display='none'">
+                                                    @endif
+                                                    <div>
+                                                        <p class="font-medium text-gray-900">{{ $item->menu->name }}</p>
+                                                        <p class="text-sm text-gray-500">Order Item</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">{{ $item->quantity }}</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">Rp {{ number_format($item->price, 0) }}</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">Rp {{ number_format($item->price * $item->quantity, 0) }}</td>
+                                        </tr>
+                                        @endif
+                                        @endforeach
+                                    @elseif($payment->reservation->orders && $payment->reservation->orders->count() > 0)
+                                        @foreach($payment->reservation->orders as $order)
+                                            @foreach($order->orderItems as $item)
+                                            @if($item->menu)
+                                            <tr>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <div class="flex items-center">
+                                                        @if($item->menu->image_url)
+                                                        <img src="{{ asset('storage/' . $item->menu->image_url) }}" 
+                                                            alt="{{ $item->menu->name }}"
+                                                            class="w-10 h-10 object-cover rounded mr-3"
+                                                            onerror="this.style.display='none'">
+                                                        @endif
+                                                        <div>
+                                                            <p class="font-medium text-gray-900">{{ $item->menu->name }}</p>
+                                                            <p class="text-sm text-gray-500">From Order #{{ $order->id }}</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap">{{ $item->quantity }}</td>
+                                                <td class="px-6 py-4 whitespace-nowrap">Rp {{ number_format($item->price, 0) }}</td>
+                                                <td class="px-6 py-4 whitespace-nowrap">Rp {{ number_format($item->price * $item->quantity, 0) }}</td>
+                                            </tr>
+                                            @endif
+                                            @endforeach
+                                        @endforeach
+                                    @else
                                     <tr>
-                                        <td colspan="3" class="px-6 py-4 text-right font-medium">Menu Total:</td>
-                                        <td class="px-6 py-4 font-bold">
-                                            Rp {{ number_format($payment->reservation->preOrderItems->sum(function($item) {
-                                                return $item->price * $item->quantity;
-                                            }), 0) }}
+                                        <td colspan="4" class="px-6 py-4 text-center text-gray-500">
+                                            No menu items found for this reservation.
                                         </td>
                                     </tr>
-                                </tfoot>
+                                    @endif
+                                </tbody>
                             </table>
                         </div>
                     </div>

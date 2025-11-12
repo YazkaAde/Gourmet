@@ -25,13 +25,13 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
                     <p class="text-sm text-blue-700">
-                        <strong>Summary Cards:</strong> Menampilkan data sesuai dengan period yang dipilih. 
-                        <strong>Table below:</strong> Menampilkan detail orders sesuai filter yang dipilih.
+                        <strong>Summary Cards:</strong> Displays data according to the selected period.
+                        <strong>Table below:</strong> Displays order details according to the selected filter.
                     </p>
                 </div>
             </div>
 
-            <!-- Summary Cards - Hanya 2 Card sesuai Period -->
+            <!-- Summary Cards -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <!-- Total Orders Card -->
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white overflow-hidden shadow-lg rounded-xl p-6 transform hover:scale-105 transition duration-300">

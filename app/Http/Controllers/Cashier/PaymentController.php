@@ -36,7 +36,13 @@ class PaymentController extends Controller
                 $query->with(['user', 'orderItems.menu', 'table']);
             },
             'reservation' => function($query) {
-                $query->with(['user', 'table', 'preOrderItems.menu']);
+                $query->with([
+                    'user', 
+                    'table', 
+                    'preOrderItems.menu',
+                    'orderItems.menu',
+                    'payments'
+                ]);
             }
         ]);
 
@@ -50,7 +56,13 @@ class PaymentController extends Controller
                 $query->with(['user', 'orderItems.menu', 'table']);
             },
             'reservation' => function($query) {
-                $query->with(['user', 'table', 'preOrderItems.menu']);
+                $query->with([
+                    'user', 
+                    'table', 
+                    'preOrderItems.menu',
+                    'orderItems.menu',
+                    'payments'
+                ]);
             }
         ]);
 

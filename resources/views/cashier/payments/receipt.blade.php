@@ -71,6 +71,7 @@
                 <div>
                     <span class="font-medium">Cashier:</span> {{ Auth::user()->name }}
                 </div>
+                <!-- Tambahkan Order Type di receipt -->
                 @if($payment->order_id && $payment->order)
                 <div>
                     <span class="font-medium">Order Type:</span> 
@@ -88,8 +89,8 @@
             <div class="text-sm">
                 @if($payment->order_id && $payment->order && $payment->order->user)
                     <p><span class="font-medium">Name:</span> {{ $payment->order->user->name }}</p>
-                    @if($payment->order->order_type == 'dine_in')
-                        <p><span class="font-medium">Table:</span> {{ $payment->order->table_number ?? 'N/A' }}</p>
+                    @if($payment->order->order_type == 'dine_in' && $payment->order->table_number)
+                        <p><span class="font-medium">Table:</span> {{ $payment->order->table_number }}</p>
                     @else
                         <p><span class="font-medium">Type:</span> Take Away</p>
                     @endif
@@ -102,6 +103,55 @@
                 @endif
             </div>
         </div>
+
+        <!-- Payment History untuk Reservation -->
+        @if($payment->reservation_id && $payment->reservation && $payment->reservation->payments->count() > 0)
+        <div class="border-b border-gray-300 pb-4 mb-4">
+            <h3 class="font-semibold mb-3">PAYMENT HISTORY</h3>
+            <div class="space-y-2 text-sm">
+                @foreach($payment->reservation->payments->where('status', 'paid')->sortBy('created_at') as $reservationPayment)
+                <div class="flex justify-between {{ $reservationPayment->id == $payment->id ? 'bg-blue-50 p-2 rounded' : '' }}">
+                    <div>
+                        Payment #{{ $reservationPayment->id }} 
+                        ({{ $reservationPayment->created_at->format('M d') }})
+                        @if($reservationPayment->id == $payment->id)
+                            <span class="ml-1 text-blue-600 font-medium">- Current Payment</span>
+                        @endif
+                    </div>
+                    <div>Rp {{ number_format($reservationPayment->amount, 0) }}</div>
+                </div>
+                @endforeach
+                
+                @php
+                    $totalAmount = $payment->reservation->total_amount ?? $payment->reservation->payments->sum('amount');
+                    $totalPaid = $payment->reservation->payments->where('status', 'paid')->sum('amount');
+                    $remaining = $totalAmount - $totalPaid;
+                @endphp
+                
+                <div class="flex justify-between font-bold pt-2 border-t">
+                    <span>Total Paid:</span>
+                    <span>Rp {{ number_format($totalPaid, 0) }}</span>
+                </div>
+                
+                <div class="flex justify-between font-bold">
+                    <span>Total Amount:</span>
+                    <span>Rp {{ number_format($totalAmount, 0) }}</span>
+                </div>
+                
+                @if($remaining > 0)
+                <div class="flex justify-between text-orange-600 font-bold">
+                    <span>Remaining Balance:</span>
+                    <span>Rp {{ number_format($remaining, 0) }}</span>
+                </div>
+                @else
+                <div class="flex justify-between text-green-600 font-bold">
+                    <span>Status:</span>
+                    <span>FULLY PAID</span>
+                </div>
+                @endif
+            </div>
+        </div>
+        @endif
 
         {{-- Order Items (for regular orders) --}}
         @if($payment->order_id && $payment->order && $payment->order->orderItems->count() > 0)
@@ -123,20 +173,52 @@
         @endif
 
         {{-- Pre-Order Items (for reservations) --}}
-        @if($payment->reservation_id && $payment->reservation && $payment->reservation->preOrderItems->count() > 0)
+        @if($payment->reservation_id && $payment->reservation)
         <div class="border-b border-gray-300 pb-4 mb-4">
-            <h3 class="font-semibold mb-3">PRE-ORDER ITEMS</h3>
+            <h3 class="font-semibold mb-3">RESERVATION MENU ITEMS</h3>
             <div class="space-y-2 text-sm">
-                @foreach($payment->reservation->preOrderItems as $preOrderItem)
-                @if($preOrderItem->menu)
-                <div class="flex justify-between">
-                    <div>
-                        <span class="font-medium">{{ $preOrderItem->quantity }}x</span> {{ $preOrderItem->menu->name }}
+                @if($payment->reservation->preOrderItems && $payment->reservation->preOrderItems->count() > 0)
+                    @foreach($payment->reservation->preOrderItems as $item)
+                    @if($item->menu)
+                    <div class="flex justify-between">
+                        <div>
+                            <span class="font-medium">{{ $item->quantity }}x</span> {{ $item->menu->name }}
+                            <span class="text-xs text-gray-500 ml-1">(Pre-Order)</span>
+                        </div>
+                        <div>Rp {{ number_format($item->price * $item->quantity, 0) }}</div>
                     </div>
-                    <div>Rp {{ number_format($preOrderItem->price * $preOrderItem->quantity, 0) }}</div>
+                    @endif
+                    @endforeach
+                @elseif($payment->reservation->orderItems && $payment->reservation->orderItems->count() > 0)
+                    @foreach($payment->reservation->orderItems as $item)
+                    @if($item->menu)
+                    <div class="flex justify-between">
+                        <div>
+                            <span class="font-medium">{{ $item->quantity }}x</span> {{ $item->menu->name }}
+                        </div>
+                        <div>Rp {{ number_format($item->price * $item->quantity, 0) }}</div>
+                    </div>
+                    @endif
+                    @endforeach
+                @elseif($payment->reservation->orders && $payment->reservation->orders->count() > 0)
+                    @foreach($payment->reservation->orders as $order)
+                        @foreach($order->orderItems as $item)
+                        @if($item->menu)
+                        <div class="flex justify-between">
+                            <div>
+                                <span class="font-medium">{{ $item->quantity }}x</span> {{ $item->menu->name }}
+                                <span class="text-xs text-gray-500 ml-1">(Order #{{ $order->id }})</span>
+                            </div>
+                            <div>Rp {{ number_format($item->price * $item->quantity, 0) }}</div>
+                        </div>
+                        @endif
+                        @endforeach
+                    @endforeach
+                @else
+                <div class="text-center text-gray-500 py-2">
+                    No menu items found for this reservation.
                 </div>
                 @endif
-                @endforeach
             </div>
         </div>
         @endif

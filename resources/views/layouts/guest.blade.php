@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Laravel') }} - Restaurant</title>
+        <title>{{ config('app.name', 'Gourmet') }} - Restaurant</title>
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -15,38 +15,23 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
 
         <style>
-            .bg-primary-600 {
-                background-color: #2563eb;
-            }
-            .bg-primary-700 {
-                background-color: #1d4ed8;
-            }
-            .text-primary-600 {
-                color: #2563eb;
-            }
-            .focus\:ring-primary-500:focus {
-                --tw-ring-color: #2563eb;
-            }
-            .border-primary-500 {
-                border-color: #2563eb;
-            }
-            .bg-primary-500 {
-                background-color: #3b82f6;
-            }
+            .bg-primary-600 { background-color: #2563eb; }
+            .bg-primary-700 { background-color: #1d4ed8; }
+            .text-primary-600 { color: #2563eb; }
+            .focus\:ring-primary-500:focus { --tw-ring-color: #2563eb; }
+            .border-primary-500 { border-color: #2563eb; }
         </style>
     </head>
     <body class="font-sans text-gray-900 antialiased">
         <div class="min-h-screen flex" style="background-image: url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80'); background-size: cover; background-position: center; background-attachment: fixed;">
-            <!-- Overlay gelap -->
             <div class="absolute inset-0 bg-black bg-opacity-60"></div>
             
-            <!-- Container utama -->
             <div class="relative w-full flex">
                 <div class="hidden lg:flex lg:w-1/2 items-center justify-center p-12">
                     <div class="text-center text-white max-w-lg">
                         <div class="mb-8">
-                            <x-application-logo class="w-32 h-32 fill-current text-white mx-auto mb-6" />
-                            <h1 class="text-5xl font-bold mb-4">{{ config('app.name', 'Restaurant') }}</h1>
+                            <x-application-logo class="w-32 h-32 mx-auto mb-6" />
+                            <h1 class="text-5xl font-bold mb-4">{{ config('app.name', 'Gourmet Restaurant') }}</h1>
                             <p class="text-xl text-gray-200">Experience the finest culinary delights</p>
                         </div>
                         

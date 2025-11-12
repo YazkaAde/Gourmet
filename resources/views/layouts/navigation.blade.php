@@ -18,8 +18,10 @@
                             <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
                         </a>
                     @elseif($role === 'customer')
-                        <a href="{{ route('customer.menu.index') }}">
-                            <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
+                        <a href="{{ route('customer.menu.index') }}" class="block h-9 w-auto fill-current text-gray-800">
+                            <img src="{{ asset('images/gourmetblack.png') }}" 
+                                 alt="Restaurant Logo" 
+                                 class="w-12 h-12 mx-auto mb-6 object-contain">
                         </a>
                     @endif
                 </div>

@@ -1,16 +1,8 @@
 <x-guest-layout>
     <!-- Header Section -->
     <div class="text-center mb-8">
-        <div class="mx-auto w-16 h-16 bg-primary-600 rounded-full flex items-center justify-center mb-4 shadow-lg">
-            <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
-            </svg>
-        </div>
-        <h2 class="text-3xl font-bold text-gray-900">
-            REGISTER
-        </h2>
         <p class="mt-2 text-sm text-gray-600">
-            Buat akun baru Anda
+            Create your new account
         </p>
     </div>
 
@@ -20,7 +12,7 @@
 
         <!-- Name -->
         <div>
-            <label for="name" class="block text-sm font-medium text-gray-700 mb-3">Nama Lengkap</label>
+            <label for="name" class="block text-sm font-medium text-gray-700 mb-3">Username</label>
             <div class="relative">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -36,7 +28,7 @@
                     required 
                     autofocus 
                     autocomplete="name"
-                    placeholder="Masukkan nama lengkap" />
+                    placeholder="Enter your username" />
             </div>
             <x-input-error :messages="$errors->get('name')" class="mt-2" />
         </div>
@@ -58,7 +50,7 @@
                     :value="old('email')" 
                     required 
                     autocomplete="username"
-                    placeholder="Masukkan email Anda" />
+                    placeholder="Enter your email" />
             </div>
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
@@ -79,14 +71,14 @@
                     name="password"
                     required 
                     autocomplete="new-password"
-                    placeholder="Buat password" />
+                    placeholder="Create password" />
             </div>
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
         </div>
 
         <!-- Confirm Password -->
         <div>
-            <label for="password_confirmation" class="block text-sm font-medium text-gray-700 mb-3">Konfirmasi Password</label>
+            <label for="password_confirmation" class="block text-sm font-medium text-gray-700 mb-3">Confirm Password</label>
             <div class="relative">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -100,7 +92,7 @@
                     name="password_confirmation" 
                     required 
                     autocomplete="new-password"
-                    placeholder="Konfirmasi password" />
+                    placeholder="Confirm password" />
             </div>
             <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
         </div>
@@ -115,9 +107,9 @@
         <!-- Login Link -->
         <div class="text-center mt-6 pt-6 border-t border-gray-200">
             <p class="text-sm text-gray-600">
-                Sudah punya akun? 
+                Already have an account?
                 <a href="{{ route('login') }}" class="font-medium text-primary-600 hover:text-primary-500 transition duration-200">
-                    Login di sini
+                    Login here
                 </a>
             </p>
         </div>

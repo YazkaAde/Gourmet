@@ -22,16 +22,6 @@
                     <span class="text-sm text-gray-600">{{ number_format($averageRating, 1) }} ({{ $reviews->total() }} reviews)</span>
                 </div>
             </div>
-            <!-- Perbaikan: Menggunakan flex-wrap dan mengurangi spacing -->
-            <div class="flex flex-wrap gap-2">
-                <a href="{{ route('admin.reviews.index') }}" class="bg-gray-500 text-white px-3 py-2 rounded-lg hover:bg-gray-600 text-sm transition duration-200 whitespace-nowrap">
-                    ← Back to Reviews
-                </a>
-                <a href="{{ route('admin.dashboard') }}" class="bg-primary-600 text-white px-3 py-2 rounded-lg hover:bg-primary-700 text-sm transition duration-200 whitespace-nowrap">
-                    Dashboard
-                </a>
-            </div>
-        </div>
     </x-slot>
 
     <!-- Tambah margin top untuk memberi jarak dari header -->

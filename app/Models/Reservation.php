@@ -57,6 +57,14 @@ class Reservation extends Model
         return $this->hasMany(OrderItem::class, 'reservation_id')->whereNull('order_id');
     }
 
+    public function getAllOrderItems()
+    {
+        $preOrderItems = $this->preOrderItems()->with('menu')->get();
+        $orderItems = $this->orderItems()->with('menu')->get();
+        
+        return $preOrderItems->merge($orderItems);
+    }
+
     public function table(): BelongsTo
     {
         return $this->belongsTo(NumberTable::class, 'table_number', 'table_number');
@@ -376,10 +384,6 @@ public function hasPendingOrder()
         ->exists();
 }
 
-public function getAllOrderItems()
-{
-    return $this->orderItems()->with('menu')->get();
-}
 
 public function getGroupedOrderItems()
 {

@@ -14,7 +14,7 @@
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label for="reservation_date" class="block text-sm font-medium text-gray-700">Tanggal Reservasi</label>
+                                <label for="reservation_date" class="block text-sm font-medium text-gray-700">Reservation Date</label>
                                 <input type="date" name="reservation_date" id="reservation_date" 
                                     class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
                                     min="{{ date('d-m-Y') }}" 
@@ -25,29 +25,29 @@
                             </div>
 
                             <div>
-                                <label for="reservation_time" class="block text-sm font-medium text-gray-700">Waktu Mulai Reservasi</label>
+                                <label for="reservation_time" class="block text-sm font-medium text-gray-700">Reservation Start Time</label>
                                 <input type="time" name="reservation_time" id="reservation_time" 
                                     class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
                                     value="{{ old('reservation_time') }}" required>
                                 @error('reservation_time')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
-                                <p class="text-xs text-gray-500 mt-1">Jam operasional: 09:00 - 21:00</p>
+                                <p class="text-xs text-gray-500 mt-1">Operating hours: 09:00 - 21:00</p>
                             </div>
 
                             <div>
-                                <label for="end_time" class="block text-sm font-medium text-gray-700">Waktu Berakhir Reservasi</label>
+                                <label for="end_time" class="block text-sm font-medium text-gray-700">Reservation End Time</label>
                                 <input type="time" name="end_time" id="end_time" 
                                     class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
                                     value="{{ old('end_time') }}" required>
                                 @error('end_time')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
-                                <p class="text-xs text-gray-500 mt-1">Minimal 1 jam dari waktu mulai</p>
+                                <p class="text-xs text-gray-500 mt-1">Minimum 1 hour from start time</p>
                             </div>
 
                             <div>
-                                <label for="guest_count" class="block text-sm font-medium text-gray-700">Jumlah Tamu</label>
+                                <label for="guest_count" class="block text-sm font-medium text-gray-700">Number of Guests</label>
                                 <input type="number" name="guest_count" id="guest_count" 
                                     class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
                                     min="1" max="100" 
@@ -58,15 +58,15 @@
                             </div>
 
                             <div>
-                                <label for="table_number" class="block text-sm font-medium text-gray-700">Pilih Meja</label>
+                                <label for="table_number" class="block text-sm font-medium text-gray-700">Select Table</label>
                                 <select name="table_number" id="table_number" 
                                     class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500" required>
-                                    <option value="">Pilih Meja</option>
+                                    <option value="">Select Table</option>
                                     @foreach($tables as $table)
                                         <option value="{{ $table->table_number }}" 
                                             data-capacity="{{ $table->table_capacity }}"
                                             {{ old('table_number') == $table->table_number ? 'selected' : '' }}>
-                                            Meja {{ $table->table_number }} (Kapasitas: {{ $table->table_capacity }} orang)
+                                            Table {{ $table->table_number }} (Capacity: {{ $table->table_capacity }} people)
                                         </option>
                                     @endforeach
                                 </select>
@@ -76,7 +76,7 @@
                             </div>
                             
                             <div class="md:col-span-2">
-                                <label for="notes" class="block text-sm font-medium text-gray-700">Catatan (Opsional)</label>
+                                <label for="notes" class="block text-sm font-medium text-gray-700">Notes (Optional)</label>
                                 <textarea name="notes" id="notes" rows="3"
                                     class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500">{{ old('notes') }}</textarea>
                                 @error('notes')
@@ -168,7 +168,7 @@
 
                         <!-- Reservation Summary -->
                         <div class="mt-6 p-4 bg-gray-50 rounded-md">
-                            <h3 class="text-lg font-medium text-gray-900">Ringkasan Reservasi</h3>
+                            <h3 class="text-lg font-medium text-gray-900">Reservasi Summary</h3>
                             <div class="mt-2 grid grid-cols-2 gap-2">
                                 <p class="text-sm text-gray-600">Table Fee:</p>
                                 <p class="text-sm font-medium" id="reservation-fee">Rp 0</p>
@@ -187,7 +187,7 @@
                         <div class="mt-6 flex justify-end space-x-3">
                             <a href="{{ route('customer.menu.index') }}" 
                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
-                                Kembali
+                                Back
                             </a>
                             <button type="submit" 
                                     class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700">
@@ -389,7 +389,6 @@
                 menuItemsContainer.insertAdjacentHTML('beforeend', menuItemHtml);
                 
                 calculateTotal();
-                showNotification('Menu item added successfully!', 'success');
             }
 
             function validateTimeRange() {

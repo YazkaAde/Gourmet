@@ -120,7 +120,6 @@
                         </div>
                     </div>
                     
-                    @include('customer.orders.partials.add-items-modal', ['order' => $order, 'categories' => $categories, 'menus' => $menus])
                     @endif
                 </div>
             </div>

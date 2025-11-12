@@ -230,7 +230,6 @@
 
 <script>
 // Main function to add menu item to reservation
-// Main function to add menu item to reservation
 async function addMenuItemToReservation(menuId, menuName, menuPrice, quantity = 1) {
     console.log('Adding menu item:', { menuId, menuName, menuPrice, quantity });
     
@@ -254,8 +253,6 @@ async function addMenuItemToReservation(menuId, menuName, menuPrice, quantity = 
             storeRoute = "{{ route('customer.reservations.menu.store', $reservation) }}";
             console.log('Using reservation route:', storeRoute);
         @else
-            // For new reservation (create page) - use different approach
-            // Add to form directly instead of AJAX call
             console.log('No reservation yet, adding to form directly');
             
             // Call global function to add to form (defined in create/edit blades)
@@ -293,10 +290,8 @@ async function addMenuItemToReservation(menuId, menuName, menuPrice, quantity = 
         if (data.success) {
             showAddMenuNotification('✓ ' + data.message, 'success');
             
-            // Close modal after successful addition
             setTimeout(() => {
                 closeAddMenuModal();
-                // Reload page to show changes
                 window.location.reload();
             }, 1500);
             
@@ -475,7 +470,6 @@ async function loadMenuPage(url) {
             document.getElementById('menu-content').innerHTML = newContent.innerHTML;
         }
         
-        // Update URL
         window.history.pushState({}, '', url);
         
     } catch (error) {
@@ -484,9 +478,7 @@ async function loadMenuPage(url) {
     }
 }
 
-// Event listeners
 document.addEventListener('DOMContentLoaded', function() {
-    // Category filter buttons
     document.addEventListener('click', function(e) {
         if (e.target.closest('.category-filter-btn')) {
             e.preventDefault();
@@ -496,7 +488,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Close modal when clicking outside
     document.addEventListener('click', function(e) {
         const modal = document.getElementById('addMenuModal');
         if (e.target === modal) {
@@ -504,14 +495,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Close modal with Escape key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             closeAddMenuModal();
         }
     });
     
-    // Initialize category filter state
     const urlParams = new URLSearchParams(window.location.search);
     const currentCategory = urlParams.get('category') || '';
     if (currentCategory) {
@@ -522,13 +511,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Handle browser back/forward buttons
 window.addEventListener('popstate', function() {
     const urlParams = new URLSearchParams(window.location.search);
     const category = urlParams.get('category') || '';
     const page = urlParams.get('page') || '1';
     
-    // Reload content based on current URL state
     loadMenuContent(category);
 });
 </script>

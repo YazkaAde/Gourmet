@@ -1,16 +1,12 @@
 <x-guest-layout>
     <!-- Header Section -->
     <div class="text-center mb-8">
-        <div class="mx-auto w-16 h-16 bg-primary-600 rounded-full flex items-center justify-center mb-4 shadow-lg">
-            <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
-            </svg>
-        </div>
+        
         <h2 class="text-3xl font-bold text-gray-900">
             LOGIN
         </h2>
         <p class="mt-2 text-sm text-gray-600">
-            Masuk ke akun Anda
+            Log in to your account
         </p>
     </div>
 
@@ -23,7 +19,7 @@
 
         <!-- Email Address -->
         <div>
-            <label for="email" class="block text-sm font-medium text-gray-700 mb-3">Username</label>
+            <label for="email" class="block text-sm font-medium text-gray-700 mb-3">Email</label>
             <div class="relative">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -38,8 +34,8 @@
                     :value="old('email')" 
                     required 
                     autofocus 
-                    autocomplete="username"
-                    placeholder="admin" />
+                    autocomplete="email"
+                    placeholder="enter your email address" />
             </div>
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
@@ -70,13 +66,13 @@
             <div class="flex items-center">
                 <input id="remember_me" type="checkbox" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded" name="remember">
                 <label for="remember_me" class="ml-2 block text-sm text-gray-900">
-                    Ingat saya
+                    Remember me
                 </label>
             </div>
 
             @if (Route::has('password.request'))
                 <a class="text-sm text-primary-600 hover:text-primary-500 font-medium transition duration-200" href="{{ route('password.request') }}">
-                    Lupa password?
+                    Forgot password?
                 </a>
             @endif
         </div>
@@ -91,9 +87,9 @@
         <!-- Register Link -->
         <div class="text-center mt-6 pt-6 border-t border-gray-200">
             <p class="text-sm text-gray-600">
-                Belum punya akun? 
+                don't have an account yet? 
                 <a href="{{ route('register') }}" class="font-medium text-primary-600 hover:text-primary-500 transition duration-200">
-                    Register di sini
+                    Register here
                 </a>
             </p>
         </div>
