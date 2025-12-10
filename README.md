@@ -52,33 +52,5 @@ Sebuah aplikasi yang dapat digunakan untuk pemesanan makanan dan minuman pada se
 - jika user memilih Debit Card maka akan muncul inputan debit yang dipilih dan juga nomer rekening
 - jika user memilih Qris maka akan muncul inputan Qris yang dipilih dan juga nomer qris
 
-operasional
-pengembangan
-marketing
-manajemen
-
-
-target
-1. membuat tampilan untuk add-menu untuk reservasi V
-2. merubah tampilan payment untuk reservasi dan order dengan metode pembayaran v
-3. memperbaiki tampilan sidebar
-4. membuat dashboard untuk cashier
-5. menyelesaikan dashboard admin v
-6. menyelesaikan logic untuk payment reservasi v
-7. membuat laporan penjualan v
-8. membuat kolom note untuk order menu biasa v
-9. membuat fitur tambah order sebelum complete
-10. membuat fitur menu ready or not v
-
-
-terimakasih telah membantu saya sejauh ini. sekarang bisakah kamu membuat bagian untuk menampilkan reservation proof yang mencakup
-1. username
-2. tanggal dan waktu create
-3. tanggal dan waktu pemesanan
-4. nomor reservasi
-5. informasi pembayaran = jumlah masing-masing harga, total harga dan sisa uang yang belum dibayarkan
-
-memperbaiki recipe dari reservasi, menu yang dipesan tidak tampil
-
-perbaikan tampilan modal
-
+# Cara Penggunaan file
+- buka terminal, lalu ketikan: npm run dev
